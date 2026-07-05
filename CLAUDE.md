@@ -1,11 +1,13 @@
-# CLAUDE.md — Label Management Software Project
+# CLAUDE.md — Good Faith Record Management
 
 > This file provides full context for any AI agent, developer, or collaborator picking up this project.
-> Last updated: July 4, 2026.
+> Last updated: July 5, 2026.
 
 ---
 
 ## Project Overview
+
+**Product name:** Good Faith Record Management
 
 **Goal:** Design and build the definitive, "unicorn" Record Label Management Software — a single platform that covers all 20 functional modules of the music label business at professional depth, with transparent flat-fee pricing, no distribution lock-in, and full data portability.
 
