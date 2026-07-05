@@ -1,0 +1,111 @@
+---
+const pairs = [
+  {
+    quote: 'These websites with their own programs — if they ever close, it could really screw things up.',
+    source: 'r/WeAreTheMusicMakers',
+    response: 'Which is why every plan includes full data export in open formats (CSV, JSON, DDEX), and your data stays accessible for 90 days after you cancel.',
+  },
+  {
+    quote: "Distrokid is not what I want. I don't trust them at all.",
+    source: 'r/musicians',
+    response: "We don't touch your distribution. Keep DistroKid, TuneCore, or whoever you already use — we just make the royalty math work across all of them.",
+  },
+  {
+    quote: 'I didn&rsquo;t find many options.',
+    source: 'r/recordlabels',
+    response: 'That specific gap — a label tool that isn&rsquo;t also a distributor — is the whitespace this was built to fill.',
+  },
+];
+---
+
+<section class="proof section" id="trust">
+  <div class="container">
+    <h2 class="proof__heading reveal" data-reveal>What labels actually said, and what we built in response</h2>
+
+    <div class="proof__list">
+      {pairs.map((pair) => (
+        <div class="proof__row reveal" data-reveal>
+          <blockquote class="proof__quote">
+            <p>&ldquo;{pair.quote}&rdquo;</p>
+            <cite>{pair.source}</cite>
+          </blockquote>
+          <p class="proof__response">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 10.5l3.5 3.5L16 6" />
+            </svg>
+            <span>{pair.response}</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .proof__heading {
+    font-size: var(--text-h2);
+    max-width: 24ch;
+    margin-bottom: var(--space-2xl);
+  }
+
+  .proof__list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .proof__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2xl);
+    padding-block: var(--space-xl);
+    align-items: center;
+  }
+
+  .proof__row + .proof__row {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .proof__quote {
+    margin: 0;
+  }
+
+  .proof__quote p {
+    font-size: var(--text-h3);
+    font-weight: 600;
+    line-height: var(--leading-snug);
+  }
+
+  .proof__quote cite {
+    display: block;
+    margin-top: var(--space-sm);
+    font-style: normal;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  .proof__response {
+    color: var(--color-muted);
+    font-size: var(--text-body);
+    max-width: 42ch;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+    margin: 0;
+  }
+
+  .proof__response svg {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.2em;
+    color: var(--color-accent-text);
+  }
+
+  @media (max-width: 56.25rem) {
+    .proof__row {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+  }
+</style>

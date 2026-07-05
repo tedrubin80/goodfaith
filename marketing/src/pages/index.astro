@@ -1,0 +1,47 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Problem from '../components/Problem.astro';
+import Differentiators from '../components/Differentiators.astro';
+import Pricing from '../components/Pricing.astro';
+import SocialProof from '../components/SocialProof.astro';
+import Waitlist from '../components/Waitlist.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout>
+  <Header />
+  <main>
+    <Hero />
+    <Problem />
+    <Differentiators />
+    <Pricing />
+    <SocialProof />
+    <Waitlist />
+  </main>
+  <Footer />
+</Layout>
+
+<script>
+  const revealEls = document.querySelectorAll('[data-reveal]');
+
+  if ('IntersectionObserver' in window && revealEls.length) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('reveal-animate');
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.15, rootMargin: '0px 0px -10% 0px' }
+    );
+
+    revealEls.forEach((el) => observer.observe(el));
+  }
+  // No else needed: elements are visible by default in CSS. Without JS or
+  // IntersectionObserver support, content simply never gets the entrance
+  // animation — it was never hidden in the first place.
+</script>

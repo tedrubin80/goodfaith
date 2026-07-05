@@ -1,0 +1,164 @@
+---
+const commitments = [
+  'Flat fee — never a percentage of your royalties',
+  'Full CSV/JSON export, any time, no questions asked',
+  'Works alongside any distributor you already use',
+];
+---
+
+<section class="hero" id="top">
+  <div class="container hero__inner">
+    <div class="hero__copy reveal" data-reveal>
+      <h1 class="hero__headline">
+        Label management software that tells you the truth.
+      </h1>
+      <p class="hero__lead">
+        Good Faith consolidates royalty statements across every distributor
+        you use, charges one flat fee regardless of catalog size, and lets
+        you export everything, any time.
+      </p>
+
+      <div class="hero__actions">
+        <a href="#waitlist" class="button button--primary button--lg">Join the waitlist</a>
+        <a href="#how-it-works" class="button button--secondary button--lg">See how it works</a>
+      </div>
+
+      <ul class="hero__commitments">
+        {commitments.map((item) => (
+          <li>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 10.5l3.5 3.5L16 6" />
+            </svg>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div class="hero__visual reveal" data-reveal aria-hidden="true">
+      <svg viewBox="0 0 360 320" class="hero__diagram">
+        <g stroke="var(--color-border)" stroke-width="1.5" fill="none">
+          <line x1="40" y1="60" x2="150" y2="150" />
+          <line x1="40" y1="150" x2="150" y2="150" />
+          <line x1="40" y1="240" x2="150" y2="150" />
+          <line x1="40" y1="100" x2="150" y2="150" stroke-dasharray="3 4" />
+          <line x1="40" y1="195" x2="150" y2="150" stroke-dasharray="3 4" />
+        </g>
+        {[60, 100, 150, 195, 240].map((y) => (
+          <g>
+            <rect x="8" y={y - 14} width="64" height="28" rx="6" fill="var(--color-surface)" stroke="var(--color-border)" stroke-width="1.5" />
+          </g>
+        ))}
+        <text x="40" y="64" text-anchor="middle" class="hero__diagram-label">DistroKid</text>
+        <text x="40" y="104" text-anchor="middle" class="hero__diagram-label">TuneCore</text>
+        <text x="40" y="154" text-anchor="middle" class="hero__diagram-label">CD Baby</text>
+        <text x="40" y="199" text-anchor="middle" class="hero__diagram-label">Symphonic</text>
+        <text x="40" y="244" text-anchor="middle" class="hero__diagram-label">FUGA</text>
+
+        <circle cx="185" cy="150" r="38" fill="var(--color-primary-fill)" />
+        <text x="185" y="146" text-anchor="middle" class="hero__diagram-hub-label">One</text>
+        <text x="185" y="163" text-anchor="middle" class="hero__diagram-hub-label">royalty run</text>
+
+        <line x1="223" y1="150" x2="300" y2="150" stroke="var(--color-border)" stroke-width="1.5" />
+        <rect x="300" y="128" width="52" height="44" rx="8" fill="var(--color-surface)" stroke="var(--color-border)" stroke-width="1.5" />
+        <text x="326" y="146" text-anchor="middle" class="hero__diagram-label">Splits +</text>
+        <text x="326" y="160" text-anchor="middle" class="hero__diagram-label">payouts</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-block: var(--space-2xl) var(--space-2xl);
+  }
+
+  .hero__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: var(--space-2xl);
+    align-items: center;
+  }
+
+  .hero__headline {
+    font-size: var(--text-h1);
+    max-width: 16ch;
+  }
+
+  .hero__lead {
+    margin-top: var(--space-md);
+    max-width: 48ch;
+    font-size: var(--text-lead);
+    color: var(--color-muted);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+  }
+
+  .hero__commitments {
+    list-style: none;
+    margin: var(--space-xl) 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .hero__commitments li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2xs);
+    font-size: var(--text-sm);
+    color: var(--color-ink);
+  }
+
+  .hero__commitments svg {
+    flex-shrink: 0;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0.125rem;
+    color: var(--color-accent-text);
+  }
+
+  .hero__visual {
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero__diagram {
+    width: 100%;
+    max-width: 26rem;
+  }
+
+  .hero__diagram-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+    fill: var(--color-muted);
+    font-family: 'Libre Franklin', sans-serif;
+  }
+
+  .hero__diagram-hub-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    fill: var(--color-on-fill);
+    font-family: 'Libre Franklin', sans-serif;
+  }
+
+  @media (max-width: 56.25rem) {
+    .hero__inner {
+      grid-template-columns: 1fr;
+    }
+
+    .hero__visual {
+      order: -1;
+    }
+
+    .hero__diagram {
+      max-width: 20rem;
+    }
+  }
+</style>
