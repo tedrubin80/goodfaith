@@ -139,6 +139,25 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 
 ---
 
+## Technical Architecture
+
+**Status:** Decided July 5, 2026. No code scaffolded yet.
+
+| Layer | Choice | Why |
+|---|---|---|
+| Backend | **Python — Django + Django REST Framework** | Best-in-class data-wrangling ecosystem (pandas, openpyxl, lxml) for normalizing messy multi-format distributor statements — the core moat. Built-in admin, ORM, and permissions accelerate RBAC and internal ops tooling (A&R pipeline, contract review). DRF powers the Pro-tier API access. |
+| Database | **PostgreSQL** | Transactional integrity for money movement (royalties, splits, payouts); native JSON columns for flexible per-distributor raw-statement storage alongside a normalized relational schema. |
+| Async jobs | **Celery + Redis** | Statement parsing, PRO registration polling, and report generation run as background jobs rather than blocking requests. |
+| Frontend | **React + Next.js (TypeScript)** | Artist / Manager / Finance / A&R portals as a single codebase with role-based views (Gap 5). |
+| File / asset storage | **S3-compatible object storage** (AWS S3 or Cloudflare R2) | Digital Asset Management module (masters, artwork, contracts) with signed-URL access control per role. |
+| Payments | **Stripe** (cards/subscriptions) + **ACH/wire** rails | Flat-fee subscription billing plus artist royalty payouts. |
+
+**Trade-off accepted:** a Node/TypeScript full-stack (Next.js + Prisma) would give one language end-to-end and faster portal iteration, but was passed over because the distributor-statement-normalization moat benefits more from Python's data ecosystem than the frontend benefits from stack unification.
+
+**Deployment:** containerized (Docker) — specific hosting/CI decisions deferred until Phase 1 scaffolding begins.
+
+---
+
 ## Key Technical Decisions & Architecture Notes
 
 ### Must-Have at Launch

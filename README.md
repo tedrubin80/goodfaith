@@ -21,13 +21,43 @@ See [`CLAUDE.md`](./CLAUDE.md) for the full strategic context, competitor analys
 
 ## Repo layout
 
-- `CLAUDE.md` — project context, strategic gaps, ICP, pricing, module build order
+- `CLAUDE.md` — project context, strategic gaps, ICP, pricing, module build order, technical architecture
 - `docs/research/` — source research and feature/competitor analysis
   - `record_label_software_feature_spec.md` — 200+ feature catalog across 20 modules
   - `competitor_reddit_research.md` — competitor analysis + Reddit intelligence
   - `label_management_software_master_report.md` — master synthesis report
   - `label_management_software_report.pdf` — final PDF deliverable
+- `backend/` — Django + Django REST Framework API (Python)
+- `frontend/` — Next.js (TypeScript) app shell for the Artist/Manager/Finance/A&R portals
+- `docker-compose.yml` — local dev stack: Postgres, Redis, Celery worker, backend, frontend
+
+## Local development
+
+Requires Docker.
+
+```bash
+cp backend/.env.example backend/.env
+docker compose up --build
+```
+
+This starts:
+
+| Service | URL | Notes |
+|---|---|---|
+| Frontend | http://localhost:3020 | Next.js dev server |
+| Backend API | http://localhost:8020 | Django, migrations run automatically on start |
+| Health check | http://localhost:8020/api/health/ | Verifies DB + Celery/Redis connectivity |
+| Postgres | localhost:5434 | credentials in `backend/.env.example` |
+| Redis | localhost:6380 | Celery broker |
+
+Host ports are non-standard (5434, 6380, 8020, 3020) to avoid clashing with other services on shared dev boxes; containers talk to each other over the compose network on the standard ports.
+
+Django superuser (for `/admin/` and to try out the `accounts.User` roles):
+
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
 
 ## Status
 
-Pre-implementation. Research and strategy are complete; source code has not been scaffolded yet. See `CLAUDE.md` for the planned module build order (Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → ...).
+Platform/Infrastructure scaffolding is in place: RBAC-ready custom user model (Artist/Manager/Finance/A&R/Admin roles), Django+DRF backend, Next.js frontend, and the full stack verified booting via `docker compose up`. See `CLAUDE.md` for the planned module build order (Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → ...).

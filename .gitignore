@@ -14,3 +14,14 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.sqlite3
+staticfiles/
+
+# Node / Next.js
+node_modules/
+.next/
