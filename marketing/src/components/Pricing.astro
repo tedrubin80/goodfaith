@@ -83,10 +83,10 @@ const commitments = [
             ))}
           </ul>
           <a
-            href="#waitlist"
+            href={`mailto:hello@usegoodfaith.com?subject=${encodeURIComponent(`${tier.name} plan inquiry`)}`}
             class:list={['button', 'button--block', tier.featured ? 'button--primary' : 'button--secondary']}
           >
-            Join the waitlist
+            Get in touch
           </a>
         </div>
       ))}

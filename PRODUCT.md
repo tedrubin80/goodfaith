@@ -6,11 +6,11 @@ brand
 
 ## Users
 
-Indie record label owners and operators running 5-50 signed artists, currently managing royalties across 2+ distributors on Google Sheets. They're evaluating this page pre-launch to decide whether the product is trustworthy enough to hand their financial and catalog data to. They are skeptical by default — burned before by platforms that lock in distribution, take a cut of earnings, or could vanish and strand their catalog. The job to be done on this page: decide "can I trust this enough to join the waitlist."
+Indie record label owners and operators running 5-50 signed artists, currently managing royalties across 2+ distributors on Google Sheets. They're evaluating this page pre-launch to decide whether the product is trustworthy enough to hand their financial and catalog data to. They are skeptical by default — burned before by platforms that lock in distribution, take a cut of earnings, or could vanish and strand their catalog. The job to be done on this page: decide "can I trust this enough to reach out when we're ready to launch."
 
 ## Product Purpose
 
-Good Faith Record Management is a flat-fee, distributor-agnostic record label management platform. This marketing page exists to convert pre-launch visitors (from Reddit, word of mouth, direct link) into waitlist signups by establishing credibility before the product itself is ready to demo. Success = a visitor who arrived skeptical of "another SaaS tool" leaves believing this one is different, and gives their email.
+Good Faith Record Management is a flat-fee, distributor-agnostic record label management platform. This marketing page exists to establish credibility with pre-launch visitors (from Reddit, word of mouth, direct link) before the product itself is ready to demo. Email capture (Listmonk waitlist) is deferred until pricing and email infrastructure are finalized. Success = a visitor who arrived skeptical of "another SaaS tool" leaves believing this one is different, and knows how to reach out (hello@usegoodfaith.com) when they're ready.
 
 ## Brand Personality
 

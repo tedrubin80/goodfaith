@@ -46,6 +46,9 @@ This starts:
 |---|---|---|
 | Frontend | http://localhost:3020 | Next.js dev server |
 | Backend API | http://localhost:8020 | Django, migrations run automatically on start |
+| Auth | http://localhost:8020/api/auth/login/ | Token auth for portal sign-in |
+| Catalog API | http://localhost:8020/api/catalog/ | Releases, artists, tracks |
+| Royalties API | http://localhost:8020/api/royalties/ | Statement upload and royalty runs |
 | Health check | http://localhost:8020/api/health/ | Verifies DB + Celery/Redis connectivity |
 | Postgres | localhost:5434 | credentials in `backend/.env.example` |
 | Redis | localhost:6380 | Celery broker |
@@ -60,4 +63,10 @@ docker compose exec backend python manage.py createsuperuser
 
 ## Status
 
-Platform/Infrastructure scaffolding is in place: RBAC-ready custom user model (Artist/Manager/Finance/A&R/Admin roles), Django+DRF backend, Next.js frontend, and the full stack verified booting via `docker compose up`. See `CLAUDE.md` for the planned module build order (Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → ...).
+Platform/Infrastructure scaffolding is in place: RBAC-ready custom user model (Artist/Manager/Finance/A&R/Admin roles), Django+DRF backend, Next.js frontend, and the full stack verified booting via `docker compose up`.
+
+**Catalog module (Phase 1):** `Label`, `Artist`, `Release`, and `Track` models with ISRC/UPC identifiers, label-scoped tenancy via `LabelMembership`, DRF API at `/api/catalog/`, and role-based queryset filtering (artists see only their own releases). Portal UI at `/catalog`.
+
+**Royalties module (Phase 1, in progress):** `RoyaltyStatement` and `RoyaltyRun` models, multi-distributor statement upload at `/api/royalties/statements/`, Finance/Manager-only RBAC. Portal UI at `/royalties`. Statement parsing/normalization pipeline is next.
+
+See `CLAUDE.md` for the planned module build order (Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → ...).
