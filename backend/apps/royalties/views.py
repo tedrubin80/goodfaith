@@ -1,5 +1,6 @@
 from django.db.models import QuerySet
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
@@ -8,10 +9,12 @@ from apps.catalog.views import _user_label_ids
 from .models import RoyaltyRun, RoyaltyStatement, StatementStatus
 from .permissions import CanAccessRoyalties
 from .serializers import (
+    RoyaltyLineItemSerializer,
     RoyaltyRunSerializer,
     RoyaltyStatementSerializer,
     RoyaltyStatementUploadSerializer,
 )
+from .tasks import process_statement
 
 
 class RoyaltyStatementViewSet(viewsets.ModelViewSet):
@@ -36,6 +39,7 @@ class RoyaltyStatementViewSet(viewsets.ModelViewSet):
             filename=filename,
             status=StatementStatus.PENDING,
         )
+        process_statement.delay(serializer.instance.pk)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -44,6 +48,20 @@ class RoyaltyStatementViewSet(viewsets.ModelViewSet):
         output = RoyaltyStatementSerializer(serializer.instance)
         headers = self.get_success_headers(output.data)
         return Response(output.data, status=201, headers=headers)
+
+    @action(detail=True, methods=["get"])
+    def line_items(self, request, pk=None):
+        statement = self.get_object()
+        items = statement.line_items.all()
+        return Response(RoyaltyLineItemSerializer(items, many=True).data)
+
+    @action(detail=True, methods=["post"])
+    def reprocess(self, request, pk=None):
+        statement = self.get_object()
+        statement.status = StatementStatus.PENDING
+        statement.save(update_fields=["status", "updated_at"])
+        process_statement.delay(statement.pk)
+        return Response(RoyaltyStatementSerializer(statement).data)
 
 
 class RoyaltyRunViewSet(viewsets.ModelViewSet):

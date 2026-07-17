@@ -1,7 +1,7 @@
 # CLAUDE.md — Good Faith Record Management
 
 > This file provides full context for any AI agent, developer, or collaborator picking up this project.
-> Last updated: July 5, 2026.
+> Last updated: July 17, 2026.
 
 ---
 
@@ -141,30 +141,106 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 
 ## Technical Architecture
 
-**Status:** Decided July 5, 2026. No code scaffolded yet.
+**Status:** Decided July 5, 2026. **Scaffolded and partially implemented** — see [Implementation Status](#implementation-status-july-10-2026) below.
 
 | Layer | Choice | Why |
 |---|---|---|
 | Backend | **Python — Django + Django REST Framework** | Best-in-class data-wrangling ecosystem (pandas, openpyxl, lxml) for normalizing messy multi-format distributor statements — the core moat. Built-in admin, ORM, and permissions accelerate RBAC and internal ops tooling (A&R pipeline, contract review). DRF powers the Pro-tier API access. |
 | Database | **PostgreSQL** | Transactional integrity for money movement (royalties, splits, payouts); native JSON columns for flexible per-distributor raw-statement storage alongside a normalized relational schema. |
 | Async jobs | **Celery + Redis** | Statement parsing, PRO registration polling, and report generation run as background jobs rather than blocking requests. |
-| Frontend | **React + Next.js (TypeScript)** | Artist / Manager / Finance / A&R portals as a single codebase with role-based views (Gap 5). |
-| File / asset storage | **S3-compatible object storage** (AWS S3 or Cloudflare R2) | Digital Asset Management module (masters, artwork, contracts) with signed-URL access control per role. |
-| Payments | **Stripe** (cards/subscriptions) + **ACH/wire** rails | Flat-fee subscription billing plus artist royalty payouts. |
+| Frontend (portal) | **React + Next.js 16 (TypeScript)** | Artist / Manager / Finance / A&R portals as a single codebase with role-based views (Gap 5). |
+| Marketing site | **Astro (static)** | Pre-launch credibility page at usegoodfaith.com — separate from the authenticated portal. See `PRODUCT.md` for brand/design brief. |
+| File / asset storage | **Local `MEDIA_ROOT` in dev; S3-compatible object storage in prod** (AWS S3 or Cloudflare R2) | Royalty statement uploads work locally today; production DAM and statement storage should move to signed-URL object storage. |
+| Payments | **Stripe** (cards/subscriptions) + **ACH/wire** rails | Flat-fee subscription billing plus artist royalty payouts. Not implemented yet. |
+| Email / waitlist | **Listmonk** (planned) | Waitlist email capture deferred until pricing and Listmonk infra are finalized. Marketing CTAs currently point to pricing and `hello@usegoodfaith.com`. |
 
 **Trade-off accepted:** a Node/TypeScript full-stack (Next.js + Prisma) would give one language end-to-end and faster portal iteration, but was passed over because the distributor-statement-normalization moat benefits more from Python's data ecosystem than the frontend benefits from stack unification.
 
-**Deployment:** containerized (Docker) — specific hosting/CI decisions deferred until Phase 1 scaffolding begins.
+**Deployment:** Docker Compose for local dev (`docker compose up`). Marketing site deployed statically behind nginx + Let's Encrypt at usegoodfaith.com (`marketing/deploy/nginx/`). Production hosting/CI for the portal stack not yet decided.
+
+---
+
+## Implementation Status (July 17, 2026)
+
+### Done
+
+| Area | What's shipped |
+|---|---|
+| **Platform / Infrastructure** | Django 6 + DRF, PostgreSQL, Redis, Celery worker, Docker Compose stack, health check at `/api/health/` |
+| **Auth** | Token auth via `rest_framework.authtoken` — `/api/auth/login/`, `/logout/`, `/me/` |
+| **RBAC (Gap 5)** | `accounts.User` with `Role` enum (artist/manager/finance/ar/admin). Permission classes key off `user.role`, not `is_staff`. Catalog and royalties enforce role boundaries in queryset filters and write permissions. |
+| **Catalog (Module 1 — partial)** | `Label`, `LabelMembership`, `Artist`, `Release`, `Track` models. ISRC on tracks, UPC on releases. API at `/api/catalog/` (labels, artists, releases, tracks). Artists scoped to own releases; managers/finance/A&R/admin see full label catalog. |
+| **Royalties (Module 4 — partial)** | `RoyaltyStatement` (multi-distributor upload, 11 distributors), `RoyaltyLineItem` (normalized per-row parse output), `RoyaltyRun` (consolidated run scaffold). API at `/api/royalties/`. Finance/Manager/Admin only — Artist and A&R blocked from financial data. **Statement parser (Gap 1) is live**: a Celery task auto-parses CSV/TSV/XLSX on upload for the Phase 1 distributors (DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote) via alias-based column mapping, normalizes rows, and matches tracks by ISRC within the label's catalog. Unmapped-column statements fail gracefully with a readable `error_message`; `POST /api/royalties/statements/{id}/reprocess/` retries. Runs still need consolidation logic on top of parsed line items. |
+| **Portal UI** | Next.js app at `frontend/` — login, dashboard, `/catalog` (releases + artists + release detail), `/royalties` (statement upload + list). Brand OKLCH tokens aligned with marketing site. |
+| **Marketing site** | Astro static site at `marketing/` — hero, problem, 6 differentiators, pricing, social proof. Live at **usegoodfaith.com**. Waitlist form **removed** (Listmonk deferred); CTAs → pricing section and `hello@usegoodfaith.com`. |
+
+### Not yet started (Phase 1 remaining)
+
+- Splits management (Module 7)
+- Payments & payouts (Module 5)
+- Full data export (CSV + JSON)
+- Audit trail for financial changes
+- DAM / file asset storage beyond statement uploads
+- Metadata management depth beyond core identifiers
+- Listmonk waitlist integration on marketing site
+
+### Module build progress
+
+```
+✅ Platform/Infrastructure
+🟡 Catalog          — models + API + read UI; no portal create/edit yet
+🟡 Royalty Accounting — upload + parser (Phase 1 distributors) live; run consolidation next
+⬜ Splits
+⬜ Payments
+⬜ Artist Portals    — role-scoped views exist; dedicated artist UX not built
+⬜ Contracts → Publishing → Distribution → Analytics → rest
+```
+
+### Repo layout (code)
+
+| Path | Purpose |
+|---|---|
+| `backend/apps/accounts/` | Custom `User` model, token auth endpoints |
+| `backend/apps/core/` | Health check, shared `TimeStampedModel`, `HasRole` permission factory |
+| `backend/apps/catalog/` | Label tenancy, artists, releases, tracks |
+| `backend/apps/royalties/` | Statement upload, statement parser (`parsers/`), Celery task, royalty runs |
+| `frontend/` | Next.js portal (port 3020 in dev) |
+| `marketing/` | Astro marketing site; build output in `marketing/dist/` |
+| `PRODUCT.md` | Marketing-site brand brief (trust tone, anti-references, design principles) |
+| `docker-compose.yml` | Postgres :5434, Redis :6380, backend :8020, frontend :3020 |
+
+### Key API endpoints
+
+| Endpoint | Access |
+|---|---|
+| `POST /api/auth/login/` | Public |
+| `GET /api/auth/me/` | Authenticated |
+| `/api/catalog/labels\|artists\|releases\|tracks/` | Label members; artists read-own for releases |
+| `/api/royalties/statements/` | Finance, Manager, Admin only |
+| `/api/royalties/statements/{id}/line_items/` | Finance, Manager, Admin only — parsed rows for a statement |
+| `/api/royalties/statements/{id}/reprocess/` | Finance, Manager, Admin only — re-run the parser |
+| `/api/royalties/runs/` | Finance, Manager, Admin only |
+
+### Local dev quick start
+
+```bash
+cp backend/.env.example backend/.env
+docker compose up --build
+# Portal: http://localhost:3020/login
+# Admin:  http://localhost:8020/admin/  (createsuperuser + Label + LabelMembership in admin)
+```
+
+Upload dev files land in `backend/media/` (gitignored).
 
 ---
 
 ## Key Technical Decisions & Architecture Notes
 
 ### Must-Have at Launch
-- **Multi-distributor statement parser** — the core moat. Must handle CSV/TSV/XLSX formats from DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, The Orchard. Auto-detect format. Normalize to internal schema.
+- **Multi-distributor statement parser** — the core moat. Must handle CSV/TSV/XLSX formats from DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, The Orchard. Auto-detect format. Normalize to internal schema. *(Shipped for the Phase 1 six via `apps/royalties/parsers/` — alias-based column mapping per distributor, pandas-backed CSV/TSV/XLSX loading, Celery task triggered on upload. TooLost/FUGA/The Orchard not yet mapped; header aliases will need refinement against real vendor exports.)*
 - **DDEX ingestion** — industry standard for DSP/distributor data exchange
-- **ISRC / UPC / ISWC storage and management** — core identifiers
-- **Role-based access control (RBAC)** — Artist / Manager / Finance / A&R / Admin roles from day one
+- **ISRC / UPC / ISWC storage and management** — core identifiers *(ISRC + UPC on catalog models today; ISWC not yet)*
+- **Role-based access control (RBAC)** — Artist / Manager / Finance / A&R / Admin roles from day one *(implemented on catalog + royalties APIs and portal nav)*
 - **Full data export (CSV + JSON)** — must be a first-class feature, not an afterthought
 - **Audit trail** — immutable log of all financial changes
 
@@ -268,6 +344,9 @@ All findings are grounded in fetched, first-party pages. Key sources:
 | `docs/research/competitor_reddit_research.md` | 24 competitor profiles + 9 Reddit threads + cross-cutting themes |
 | `docs/research/label_management_software_master_report.md` | Full master synthesis (Markdown) |
 | `docs/research/label_management_software_report.pdf` | 31-page professional PDF deliverable |
+| `PRODUCT.md` | Marketing-site brand brief — audience, trust tone, design principles, anti-references |
+| `README.md` | Repo quick start, service URLs, current module status |
+| `marketing/` | Astro static site for usegoodfaith.com |
 | `CLAUDE.md` | This file — project context for AI agents and collaborators |
 
 ---
@@ -281,4 +360,6 @@ All findings are grounded in fetched, first-party pages. Key sources:
 5. **Pricing constraint:** Never propose a percentage-of-earnings model. Flat fee only.
 6. **Trust is the #1 brand value.** Data portability, transparent pricing, and role-based access are non-negotiable.
 7. When writing product copy, pull from the verbatim Reddit quotes in the Community Intelligence section — they are the exact language the market uses.
-8. **Module build order:** Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → Contracts → Publishing Admin → Distribution → Analytics → everything else.
+8. **Module build order:** Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → Contracts → Publishing Admin → Distribution → Analytics → everything else. Royalty statement parser (Gap 1) shipped for the Phase 1 distributors. **Current focus:** Splits management (Module 7).
+9. **Marketing vs portal:** `marketing/` is the public pre-launch site (`PRODUCT.md` governs copy/design). `frontend/` is the authenticated label portal. Do not add a waitlist form until Listmonk is configured.
+10. **Financial data access:** Artist and A&R roles must never see royalty statements, splits, or payout data — enforce in API queryset filters and portal nav, not just UI hiding.

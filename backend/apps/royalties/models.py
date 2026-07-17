@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 
-from apps.catalog.models import Label
+from apps.catalog.models import Label, Track
 from apps.core.models import TimeStampedModel
 
 
@@ -63,6 +63,42 @@ class RoyaltyStatement(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.get_distributor_display()} — {self.filename}"
+
+
+class RoyaltyLineItem(TimeStampedModel):
+    """A single normalized row from a parsed distributor statement."""
+
+    statement = models.ForeignKey(
+        RoyaltyStatement, on_delete=models.CASCADE, related_name="line_items"
+    )
+    track = models.ForeignKey(
+        Track,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="royalty_line_items",
+        help_text="Matched by ISRC within the statement's label catalog, when possible.",
+    )
+    sale_period = models.DateField(
+        blank=True, null=True, help_text="Reporting period this row's activity occurred in."
+    )
+    store = models.CharField(max_length=128, blank=True, help_text="DSP/platform, e.g. Spotify.")
+    country = models.CharField(max_length=2, blank=True)
+    artist_name = models.CharField(max_length=255, blank=True, help_text="Artist name as reported by the distributor.")
+    track_title = models.CharField(max_length=512, blank=True, help_text="Track title as reported by the distributor.")
+    isrc = models.CharField(max_length=12, blank=True)
+    upc = models.CharField(max_length=13, blank=True)
+    quantity = models.PositiveIntegerField(default=0, help_text="Units/streams for this row.")
+    amount = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
+    raw_data = models.JSONField(
+        default=dict, blank=True, help_text="Original row exactly as read from the statement file."
+    )
+
+    class Meta:
+        ordering = ("-sale_period", "id")
+
+    def __str__(self) -> str:
+        return f"{self.isrc or self.track_title} — {self.amount}"
 
 
 class RoyaltyRunStatus(models.TextChoices):

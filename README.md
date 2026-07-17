@@ -67,6 +67,6 @@ Platform/Infrastructure scaffolding is in place: RBAC-ready custom user model (A
 
 **Catalog module (Phase 1):** `Label`, `Artist`, `Release`, and `Track` models with ISRC/UPC identifiers, label-scoped tenancy via `LabelMembership`, DRF API at `/api/catalog/`, and role-based queryset filtering (artists see only their own releases). Portal UI at `/catalog`.
 
-**Royalties module (Phase 1, in progress):** `RoyaltyStatement` and `RoyaltyRun` models, multi-distributor statement upload at `/api/royalties/statements/`, Finance/Manager-only RBAC. Portal UI at `/royalties`. Statement parsing/normalization pipeline is next.
+**Royalties module (Phase 1, in progress):** `RoyaltyStatement`, `RoyaltyLineItem`, and `RoyaltyRun` models, multi-distributor statement upload at `/api/royalties/statements/`, Finance/Manager-only RBAC. Portal UI at `/royalties`. Uploads are auto-parsed by a Celery task (CSV/TSV/XLSX, alias-based column mapping) for DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, and RouteNote, normalizing rows and matching tracks by ISRC. Royalty run consolidation is next.
 
 See `CLAUDE.md` for the planned module build order (Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → ...).

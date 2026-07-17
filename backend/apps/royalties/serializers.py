@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import RoyaltyRun, RoyaltyStatement
+from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyStatement
 
 
 class RoyaltyStatementSerializer(serializers.ModelSerializer):
@@ -46,6 +46,26 @@ class RoyaltyStatementUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoyaltyStatement
         fields = ("label", "distributor", "file", "period_start", "period_end", "currency")
+
+
+class RoyaltyLineItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoyaltyLineItem
+        fields = (
+            "id",
+            "statement",
+            "track",
+            "sale_period",
+            "store",
+            "country",
+            "artist_name",
+            "track_title",
+            "isrc",
+            "upc",
+            "quantity",
+            "amount",
+        )
+        read_only_fields = fields
 
 
 class RoyaltyRunSerializer(serializers.ModelSerializer):

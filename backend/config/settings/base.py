@@ -2,6 +2,7 @@
 Base Django settings for Good Faith Record Management, shared by all environments.
 """
 
+import sys
 from pathlib import Path
 
 import environ
@@ -109,3 +110,8 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+
+# Run tasks synchronously under `manage.py test` / pytest so tests don't need a live broker.
+if "test" in sys.argv or "pytest" in sys.modules:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
