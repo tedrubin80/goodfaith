@@ -7,7 +7,7 @@ import { ArtistDashboard } from "@/components/ArtistDashboard";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { canAccessRoyalties, isArtistRole, useAuth } from "@/lib/auth";
-import type { Payout, Release, RoyaltyStatement, SplitSheet } from "@/lib/types";
+import type { ArtistEarning, Payout, Release, RoyaltyStatement, SplitSheet } from "@/lib/types";
 
 export default function DashboardPage() {
   const { token, user } = useAuth();
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [statements, setStatements] = useState<RoyaltyStatement[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [sheets, setSheets] = useState<SplitSheet[]>([]);
+  const [earnings, setEarnings] = useState<ArtistEarning[]>([]);
   const [loading, setLoading] = useState(true);
 
   const isArtist = user && isArtistRole(user.role);
@@ -30,11 +31,13 @@ export default function DashboardPage() {
         apiFetch<Release[]>("/api/catalog/releases/", {}, token),
         apiFetch<Payout[]>("/api/payments/payouts/", {}, token),
         apiFetch<SplitSheet[]>("/api/splits/sheets/", {}, token),
+        apiFetch<ArtistEarning[]>("/api/royalties/my-earnings/", {}, token),
       ])
-        .then(([releaseData, payoutData, sheetData]) => {
+        .then(([releaseData, payoutData, sheetData, earningsData]) => {
           setReleases(releaseData);
           setPayouts(payoutData);
           setSheets(sheetData);
+          setEarnings(earningsData);
         })
         .finally(() => setLoading(false));
       return;
@@ -63,6 +66,7 @@ export default function DashboardPage() {
         releases={releases}
         payouts={payouts}
         sheets={sheets}
+        earnings={earnings}
         displayName={displayName}
       />
     );

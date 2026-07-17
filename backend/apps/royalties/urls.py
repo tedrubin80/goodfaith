@@ -8,5 +8,6 @@ router.register("statements", views.RoyaltyStatementViewSet, basename="royalty-s
 router.register("runs", views.RoyaltyRunViewSet, basename="royalty-run")
 
 urlpatterns = [
+    path("my-earnings/", views.MyEarningsView.as_view(), name="royalty-my-earnings"),
     path("", include(router.urls)),
 ]

@@ -7,12 +7,13 @@ from apps.audit.services import log_audit_event
 from apps.catalog.views import _user_label_ids
 
 from .models import SplitSheet, SplitSheetStatus
+from apps.accounts.permissions import Mandatory2FAEnforced
 from .permissions import CanAccessSplits
 from .serializers import SplitSheetCreateSerializer, SplitSheetSerializer
 
 
 class SplitSheetViewSet(viewsets.ModelViewSet):
-    permission_classes = [CanAccessSplits]
+    permission_classes = [CanAccessSplits, Mandatory2FAEnforced]
 
     def get_queryset(self) -> QuerySet[SplitSheet]:
         label_ids = _user_label_ids(self.request.user)

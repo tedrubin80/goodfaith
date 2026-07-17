@@ -1,7 +1,19 @@
 import { titleCase } from "@/lib/format";
 import type { StatementStatus } from "@/lib/types";
 
-type BadgeStatus = StatementStatus | "ready" | "partially_paid" | "paid" | "closed" | "pending" | "cancelled" | "draft" | "finalized";
+type BadgeStatus =
+  | StatementStatus
+  | "ready"
+  | "partially_paid"
+  | "paid"
+  | "closed"
+  | "pending"
+  | "cancelled"
+  | "draft"
+  | "finalized"
+  | "active"
+  | "expired"
+  | "terminated";
 
 const STYLES: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -14,6 +26,9 @@ const STYLES: Record<string, string> = {
   closed: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
   cancelled: "bg-red-500/10 text-red-800 dark:text-red-200",
   draft: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  active: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  expired: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  terminated: "bg-red-500/10 text-red-800 dark:text-red-200",
   finalized: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
 };
 

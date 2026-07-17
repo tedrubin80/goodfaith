@@ -19,6 +19,7 @@ import { RELEASE_TYPES, type Artist, type Release, type Track } from "@/lib/type
 const EMPTY_TRACK = {
   title: "",
   isrc: "",
+  iswc: "",
   track_number: "",
   duration_seconds: "",
 };
@@ -112,6 +113,7 @@ export default function ReleaseDetailPage() {
     setTrackForm({
       title: track.title,
       isrc: track.isrc ?? "",
+      iswc: track.iswc ?? "",
       track_number: String(track.track_number),
       duration_seconds: track.duration_seconds ? String(track.duration_seconds) : "",
     });
@@ -134,6 +136,7 @@ export default function ReleaseDetailPage() {
       release: release.id,
       title: trackForm.title.trim(),
       isrc: trackForm.isrc.trim() || null,
+      iswc: trackForm.iswc.trim() || null,
       track_number: trackForm.track_number ? Number(trackForm.track_number) : release.tracks.length + 1,
     };
     if (trackForm.duration_seconds.trim()) {
@@ -363,6 +366,16 @@ export default function ReleaseDetailPage() {
               />
             </label>
             <label className={labelClassName}>
+              ISWC
+              <input
+                value={trackForm.iswc}
+                onChange={(event) => setTrackForm((c) => ({ ...c, iswc: event.target.value }))}
+                className={inputClassName}
+                placeholder="T-123.456.789-0"
+                maxLength={15}
+              />
+            </label>
+            <label className={labelClassName}>
               Track #
               <input
                 type="number"
@@ -412,6 +425,7 @@ export default function ReleaseDetailPage() {
                 <th className="px-4 py-3 font-medium w-12">#</th>
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">ISRC</th>
+                <th className="px-4 py-3 font-medium">ISWC</th>
                 <th className="px-4 py-3 font-medium text-right">Duration</th>
                 {canManage ? <th className="px-4 py-3 font-medium text-right">Actions</th> : null}
               </tr>
@@ -424,6 +438,7 @@ export default function ReleaseDetailPage() {
                   </td>
                   <td className="px-4 py-3 font-medium">{track.title}</td>
                   <td className="px-4 py-3 font-mono text-xs">{track.isrc ?? "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{track.iswc ?? "—"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {formatDuration(track.duration_seconds)}
                   </td>

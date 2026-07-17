@@ -8,6 +8,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role
+from apps.accounts.test_utils import satisfy_mandatory_2fa
 from apps.catalog.models import Artist, Label, LabelMembership, Release, Track
 from apps.payments.models import Payout, PayoutBatch
 from apps.payments.services import generate_payout_batch
@@ -27,6 +28,7 @@ class LabelExportTests(TestCase):
             role=Role.FINANCE,
         )
         LabelMembership.objects.create(user=self.finance, label=self.label)
+        satisfy_mandatory_2fa(self.finance)
 
         self.ar = User.objects.create_user(
             username="exportar",

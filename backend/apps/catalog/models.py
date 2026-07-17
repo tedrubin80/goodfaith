@@ -103,6 +103,12 @@ class Track(TimeStampedModel):
         unique=True,
         help_text="International Standard Recording Code.",
     )
+    iswc = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="International Standard Musical Work Code (T-xxx.xxx.xxx-x).",
+    )
     track_number = models.PositiveSmallIntegerField(default=1)
     duration_seconds = models.PositiveIntegerField(blank=True, null=True)
 

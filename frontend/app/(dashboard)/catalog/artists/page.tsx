@@ -25,7 +25,13 @@ export default function ArtistsPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [invitingId, setInvitingId] = useState<number | null>(null);
   const [form, setForm] = useState({ label: "", name: "", slug: "" });
+  const [inviteForm, setInviteForm] = useState({
+    username: "",
+    password: "",
+    email: "",
+  });
 
   const canManage = user && canManageCatalog(user.role);
 
@@ -57,12 +63,25 @@ export default function ArtistsPage() {
 
   function startEdit(artist: Artist) {
     setEditingId(artist.id);
+    setInvitingId(null);
     setForm({
       label: String(artist.label),
       name: artist.name,
       slug: artist.slug,
     });
     setShowForm(true);
+    setError(null);
+  }
+
+  function startInvite(artist: Artist) {
+    setInvitingId(artist.id);
+    setShowForm(false);
+    setEditingId(null);
+    setInviteForm({
+      username: slugify(artist.name).replace(/-/g, "") || "artist",
+      password: "",
+      email: "",
+    });
     setError(null);
   }
 
@@ -102,6 +121,37 @@ export default function ArtistsPage() {
     }
   }
 
+  async function handleInvite(event: React.FormEvent) {
+    event.preventDefault();
+    if (!token || !canManage || !invitingId) return;
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<Artist>(
+        `/api/catalog/artists/${invitingId}/invite/`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            username: inviteForm.username.trim(),
+            password: inviteForm.password,
+            email: inviteForm.email.trim(),
+          }),
+        },
+        token,
+      );
+      setArtists((current) => current.map((a) => (a.id === updated.id ? updated : a)));
+      setInvitingId(null);
+      setInviteForm({ username: "", password: "", email: "" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create portal login.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const invitingArtist = artists.find((a) => a.id === invitingId) ?? null;
+
   return (
     <>
       <PageHeader
@@ -113,6 +163,7 @@ export default function ArtistsPage() {
               <button
                 type="button"
                 onClick={() => {
+                  setInvitingId(null);
                   if (showForm && !editingId) resetForm();
                   else {
                     setEditingId(null);
@@ -124,10 +175,7 @@ export default function ArtistsPage() {
                 {showForm && !editingId ? "Cancel" : "Add artist"}
               </button>
             ) : null}
-            <Link
-              href="/catalog"
-              className={buttonSecondaryClassName}
-            >
+            <Link href="/catalog" className={buttonSecondaryClassName}>
               View releases
             </Link>
           </div>
@@ -138,6 +186,61 @@ export default function ArtistsPage() {
         <p className="mb-4 text-sm text-red-600 dark:text-red-400" role="alert">
           {error}
         </p>
+      ) : null}
+
+      {canManage && invitingArtist ? (
+        <form
+          onSubmit={handleInvite}
+          className="mb-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-4"
+        >
+          <h2 className="font-semibold">Invite portal login — {invitingArtist.name}</h2>
+          <p className="text-sm text-[var(--color-muted)]">
+            Creates an Artist-role account linked to this roster entry. Share the credentials
+            securely — they can sign in and see their releases, splits, earnings, and payouts.
+          </p>
+          <label className={labelClassName}>
+            Username
+            <input
+              required
+              value={inviteForm.username}
+              onChange={(event) => setInviteForm((c) => ({ ...c, username: event.target.value }))}
+              className={inputClassName}
+            />
+          </label>
+          <label className={labelClassName}>
+            Temporary password
+            <input
+              required
+              type="password"
+              minLength={8}
+              value={inviteForm.password}
+              onChange={(event) => setInviteForm((c) => ({ ...c, password: event.target.value }))}
+              className={inputClassName}
+              placeholder="At least 8 characters"
+            />
+          </label>
+          <label className={labelClassName}>
+            Email (optional)
+            <input
+              type="email"
+              value={inviteForm.email}
+              onChange={(event) => setInviteForm((c) => ({ ...c, email: event.target.value }))}
+              className={inputClassName}
+            />
+          </label>
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting} className={buttonPrimaryClassName}>
+              {submitting ? "Creating…" : "Create portal login"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setInvitingId(null)}
+              className={buttonSecondaryClassName}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       ) : null}
 
       {canManage && showForm ? (
@@ -227,10 +330,21 @@ export default function ArtistsPage() {
               <p className="mt-1 text-xs text-[var(--color-muted)] font-mono">{artist.slug}</p>
               {artist.user ? (
                 <p className="mt-3 text-xs text-[var(--color-accent-text)] font-medium">
-                  Portal access enabled
+                  Portal: {artist.username || "linked"}
                 </p>
               ) : (
-                <p className="mt-3 text-xs text-[var(--color-muted)]">No portal login linked</p>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <p className="text-xs text-[var(--color-muted)]">No portal login</p>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      onClick={() => startInvite(artist)}
+                      className="text-xs font-medium text-[var(--color-primary-text)] hover:underline"
+                    >
+                      Invite
+                    </button>
+                  ) : null}
+                </div>
               )}
             </article>
           ))}

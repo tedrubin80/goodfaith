@@ -1,18 +1,23 @@
 from django.db.models import QuerySet
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
+from rest_framework.generics import ListAPIView
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.accounts.models import Role
 from apps.catalog.views import _user_label_ids
 
 from apps.audit.models import AuditAction
 from apps.audit.services import log_audit_event
 
-from .models import RoyaltyRun, RoyaltyStatement, StatementStatus
+from .models import RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement, StatementStatus
 from .consolidation import ConsolidationError, consolidate_run
 from .permissions import CanAccessRoyalties
+from apps.accounts.permissions import Mandatory2FAEnforced
 from .serializers import (
+    ArtistEarningsSerializer,
     RoyaltyLineItemSerializer,
     RoyaltyRunCreateSerializer,
     RoyaltyRunPayoutSerializer,
@@ -41,7 +46,7 @@ def _log_run_consolidated(run: RoyaltyRun, *, actor) -> None:
 
 
 class RoyaltyStatementViewSet(viewsets.ModelViewSet):
-    permission_classes = [CanAccessRoyalties]
+    permission_classes = [CanAccessRoyalties, Mandatory2FAEnforced]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self) -> QuerySet[RoyaltyStatement]:
@@ -108,7 +113,7 @@ class RoyaltyStatementViewSet(viewsets.ModelViewSet):
 
 
 class RoyaltyRunViewSet(viewsets.ModelViewSet):
-    permission_classes = [CanAccessRoyalties]
+    permission_classes = [CanAccessRoyalties, Mandatory2FAEnforced]
 
     def get_queryset(self) -> QuerySet[RoyaltyRun]:
         return RoyaltyRun.objects.filter(
@@ -171,3 +176,24 @@ class RoyaltyRunViewSet(viewsets.ModelViewSet):
         run.save(update_fields=["consolidation_error", "updated_at"])
         _log_run_consolidated(run, actor=request.user)
         return Response(RoyaltyRunSerializer(run).data)
+
+
+class MyEarningsView(ListAPIView):
+    """Artist-scoped royalty run payout lines — earnings breakdown without label-wide data."""
+
+    serializer_class = ArtistEarningsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self) -> QuerySet[RoyaltyRunPayout]:
+        user = self.request.user
+        if user.role != Role.ARTIST or not hasattr(user, "artist_profile"):
+            return RoyaltyRunPayout.objects.none()
+        label_ids = _user_label_ids(user)
+        return (
+            RoyaltyRunPayout.objects.filter(
+                artist=user.artist_profile,
+                run__label_id__in=label_ids,
+            )
+            .select_related("run", "track")
+            .order_by("-run__created_at", "-amount")
+        )

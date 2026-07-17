@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { canAccessAuditLog, canAccessPayments, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
+import { canAccessAuditLog, canAccessContracts, canAccessPayments, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
@@ -15,17 +15,23 @@ type NavItem = {
   requiresPayments?: boolean;
   requiresActivity?: boolean;
   requiresRoster?: boolean;
+  requiresContracts?: boolean;
+  requiresEarnings?: boolean;
+  artistOnly?: boolean;
 };
 
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Overview", artistLabel: "Home" },
   { href: "/catalog", label: "Catalog", artistLabel: "My releases" },
   { href: "/catalog/artists", label: "Artists", requiresRoster: true },
+  { href: "/contracts", label: "Contracts", artistLabel: "My contracts", requiresContracts: true },
+  { href: "/earnings", label: "My earnings", requiresEarnings: true, artistOnly: true },
   { href: "/splits", label: "Splits", artistLabel: "My splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
   { href: "/payments", label: "Payments", artistLabel: "My payouts", requiresPayments: true },
   { href: "/activity", label: "Activity", requiresActivity: true },
   { href: "/export", label: "Export", artistLabel: "My data" },
+  { href: "/settings/security", label: "Security" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -34,7 +40,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const links = NAV.filter((item) => {
     if (!user) return false;
+    if (item.artistOnly && !isArtistRole(user.role)) return false;
+    if (item.requiresEarnings && !isArtistRole(user.role)) return false;
     if (item.requiresRoster && !canViewRoster(user.role)) return false;
+    if (item.requiresContracts && !canAccessContracts(user.role)) return false;
     if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
     if (item.requiresSplits && !canAccessSplits(user.role)) return false;
     if (item.requiresPayments && !canAccessPayments(user.role)) return false;
@@ -121,6 +130,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <main className="flex-1 px-4 py-8 sm:px-8 max-w-6xl w-full mx-auto">
+          {user?.must_enable_2fa ? (
+            <div
+              className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              role="status"
+            >
+              <span>
+                Enable two-factor authentication to access royalties, splits, and financial
+                export.
+              </span>
+              <Link
+                href="/settings/security"
+                className="shrink-0 font-medium text-[var(--color-primary-text)] hover:underline"
+              >
+                Set up 2FA →
+              </Link>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

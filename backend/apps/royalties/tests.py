@@ -6,6 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role
+from apps.accounts.test_utils import satisfy_mandatory_2fa
 from apps.catalog.models import Artist, Label, LabelMembership, Release, Track
 from apps.splits.models import SplitEntry, SplitRole, SplitSheet, SplitSheetStatus
 
@@ -23,6 +24,7 @@ class RoyaltyAPITests(TestCase):
             role=Role.FINANCE,
         )
         LabelMembership.objects.create(user=self.finance, label=self.label)
+        satisfy_mandatory_2fa(self.finance)
         self.artist = User.objects.create_user(
             username="artist",
             password="testpass123",
@@ -110,6 +112,7 @@ class RoyaltyRunConsolidationTests(TestCase):
             role=Role.FINANCE,
         )
         LabelMembership.objects.create(user=self.finance, label=self.label)
+        satisfy_mandatory_2fa(self.finance)
         self.client = APIClient()
         self.client.force_authenticate(user=self.finance)
 
@@ -199,3 +202,76 @@ class RoyaltyRunConsolidationTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertFalse(RoyaltyRun.objects.exists())
+
+
+class MyEarningsAPITests(TestCase):
+    def setUp(self):
+        self.label = Label.objects.create(name="Earn Label", slug="earn-label")
+        self.finance = User.objects.create_user(
+            username="earnfinance",
+            password="testpass123",
+            role=Role.FINANCE,
+        )
+        satisfy_mandatory_2fa(self.finance)
+        LabelMembership.objects.create(user=self.finance, label=self.label)
+
+        self.artist_user = User.objects.create_user(
+            username="earnartist",
+            password="testpass123",
+            role=Role.ARTIST,
+        )
+        LabelMembership.objects.create(user=self.artist_user, label=self.label)
+        self.artist = Artist.objects.create(
+            label=self.label,
+            name="Earn Artist",
+            slug="earn-artist",
+            user=self.artist_user,
+        )
+
+        release = Release.objects.create(label=self.label, primary_artist=self.artist, title="Earn EP")
+        track = Track.objects.create(release=release, title="Earn Track", isrc="USRC17607841", track_number=1)
+        sheet = SplitSheet.objects.create(track=track, status=SplitSheetStatus.FINALIZED)
+        SplitEntry.objects.create(
+            split_sheet=sheet,
+            participant_name="Earn Artist",
+            artist=self.artist,
+            role=SplitRole.ARTIST,
+            percentage=Decimal("100.00"),
+        )
+
+        statement = RoyaltyStatement.objects.create(
+            label=self.label,
+            distributor=Distributor.DISTROKID,
+            filename="earn.csv",
+            file=SimpleUploadedFile("earn.csv", b"x"),
+            status=StatementStatus.PROCESSED,
+            currency="USD",
+            uploaded_by=self.finance,
+        )
+        RoyaltyLineItem.objects.create(
+            statement=statement,
+            track=track,
+            isrc="USRC17607841",
+            amount=Decimal("25.0000"),
+        )
+        run = RoyaltyRun.objects.create(label=self.label, name="Q1 Earn", currency="USD")
+        run.statements.set([statement])
+        from .consolidation import consolidate_run
+
+        consolidate_run(run)
+
+        self.client = APIClient()
+
+    def test_artist_sees_own_earnings_only(self):
+        self.client.force_authenticate(user=self.artist_user)
+        response = self.client.get("/api/royalties/my-earnings/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(Decimal(response.data[0]["amount"]), Decimal("25.0000"))
+        self.assertEqual(response.data[0]["run_name"], "Q1 Earn")
+
+    def test_manager_gets_empty_earnings_list(self):
+        self.client.force_authenticate(user=self.finance)
+        response = self.client.get("/api/royalties/my-earnings/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, [])

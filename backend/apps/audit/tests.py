@@ -6,6 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role
+from apps.accounts.test_utils import satisfy_mandatory_2fa
 from apps.audit.models import AuditAction, AuditEvent
 from apps.catalog.models import Artist, Label, LabelMembership, Release, Track
 from apps.payments.models import Payout
@@ -31,6 +32,7 @@ class AuditLogTests(TestCase):
             role=Role.ARTIST,
         )
         LabelMembership.objects.create(user=self.finance, label=self.label)
+        satisfy_mandatory_2fa(self.finance)
         LabelMembership.objects.create(user=self.artist_user, label=self.label)
         self.artist = Artist.objects.create(
             label=self.label,

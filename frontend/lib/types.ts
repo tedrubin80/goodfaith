@@ -7,6 +7,9 @@ export type User = {
   first_name: string;
   last_name: string;
   role: UserRole;
+  is_2fa_enabled: boolean;
+  requires_2fa: boolean;
+  must_enable_2fa: boolean;
 };
 
 export type Label = {
@@ -21,6 +24,7 @@ export type Artist = {
   name: string;
   slug: string;
   user: number | null;
+  username: string;
 };
 
 export type Track = {
@@ -28,6 +32,7 @@ export type Track = {
   release: number;
   title: string;
   isrc: string | null;
+  iswc: string | null;
   track_number: number;
   duration_seconds: number | null;
 };
@@ -103,6 +108,71 @@ export type RoyaltyRunPayout = {
   amount: string;
   unallocated_reason: string;
 };
+
+export type ArtistEarning = {
+  id: number;
+  run: number;
+  run_name: string;
+  run_status: string;
+  run_created_at: string;
+  currency: string;
+  track: number | null;
+  isrc: string;
+  track_title: string;
+  participant_name: string;
+  role: string;
+  role_display: string;
+  share_percentage: string;
+  track_gross: string;
+  amount: string;
+};
+
+export type ContractType =
+  | "recording"
+  | "distribution"
+  | "license"
+  | "sync"
+  | "publishing"
+  | "other";
+
+export type ContractStatus = "draft" | "active" | "expired" | "terminated";
+
+export type Contract = {
+  id: number;
+  label: number;
+  artist: number | null;
+  artist_name: string;
+  title: string;
+  contract_type: ContractType;
+  contract_type_display: string;
+  status: ContractStatus;
+  status_display: string;
+  start_date: string | null;
+  end_date: string | null;
+  term_notes: string;
+  file: string | null;
+  filename: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const CONTRACT_TYPES: { value: ContractType; label: string }[] = [
+  { value: "recording", label: "Recording" },
+  { value: "distribution", label: "Distribution" },
+  { value: "license", label: "License" },
+  { value: "sync", label: "Sync" },
+  { value: "publishing", label: "Publishing" },
+  { value: "other", label: "Other" },
+];
+
+export const CONTRACT_STATUSES: { value: ContractStatus; label: string }[] = [
+  { value: "draft", label: "Draft" },
+  { value: "active", label: "Active" },
+  { value: "expired", label: "Expired" },
+  { value: "terminated", label: "Terminated" },
+];
 
 export type PayoutBatch = {
   id: number;

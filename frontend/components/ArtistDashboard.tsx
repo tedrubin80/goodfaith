@@ -5,12 +5,13 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatMoney } from "@/lib/format";
-import type { Payout, Release, SplitSheet } from "@/lib/types";
+import type { ArtistEarning, Payout, Release, SplitSheet } from "@/lib/types";
 
 type ArtistDashboardProps = {
   releases: Release[];
   payouts: Payout[];
   sheets: SplitSheet[];
+  earnings: ArtistEarning[];
   displayName: string;
 };
 
@@ -18,6 +19,7 @@ export function ArtistDashboard({
   releases,
   payouts,
   sheets,
+  earnings,
   displayName,
 }: ArtistDashboardProps) {
   const pendingTotal = payouts
@@ -26,6 +28,7 @@ export function ArtistDashboard({
   const paidTotal = payouts
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + Number(p.amount), 0);
+  const earningsTotal = earnings.reduce((sum, row) => sum + Number(row.amount), 0);
   const trackCount = releases.reduce((sum, r) => sum + r.track_count, 0);
   const recentPayouts = [...payouts]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -38,7 +41,7 @@ export function ArtistDashboard({
         description="Your releases, split sheets, and royalty payouts from the label."
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 mb-8">
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
           <h2 className="text-sm font-medium text-[var(--color-muted)]">Releases</h2>
           <p className="mt-2 text-3xl font-semibold tabular-nums">{releases.length}</p>
@@ -46,6 +49,20 @@ export function ArtistDashboard({
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
           <h2 className="text-sm font-medium text-[var(--color-muted)]">Tracks</h2>
           <p className="mt-2 text-3xl font-semibold tabular-nums">{trackCount}</p>
+        </section>
+        <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-[var(--color-muted)]">Run earnings</h2>
+            <Link
+              href="/earnings"
+              className="text-xs font-medium text-[var(--color-primary-text)] hover:underline"
+            >
+              Details
+            </Link>
+          </div>
+          <p className="mt-2 text-3xl font-semibold tabular-nums">
+            {formatMoney(String(earningsTotal))}
+          </p>
         </section>
         <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
           <h2 className="text-sm font-medium text-[var(--color-muted)]">Pending</h2>

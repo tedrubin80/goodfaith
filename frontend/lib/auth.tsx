@@ -15,11 +15,17 @@ import type { User } from "./types";
 
 const TOKEN_KEY = "gfrm_token";
 
+export type LoginResult =
+  | { kind: "complete"; user: User; token: string }
+  | { kind: "requires_2fa"; pendingToken: string; user: User };
+
 type AuthContextValue = {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<LoginResult>;
+  verify2fa: (pendingToken: string, code: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -48,18 +54,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, [loadSession]);
 
-  const login = useCallback(async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string): Promise<LoginResult> => {
+    const payload = await apiFetch<{
+      token?: string;
+      requires_2fa?: boolean;
+      pending_token?: string;
+      user: User;
+    }>("/api/auth/login/", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (payload.requires_2fa && payload.pending_token) {
+      return {
+        kind: "requires_2fa",
+        pendingToken: payload.pending_token,
+        user: payload.user,
+      };
+    }
+
+    if (!payload.token) {
+      throw new Error("Sign in failed.");
+    }
+
+    localStorage.setItem(TOKEN_KEY, payload.token);
+    setToken(payload.token);
+    setUser(payload.user);
+    return { kind: "complete", user: payload.user, token: payload.token };
+  }, []);
+
+  const verify2fa = useCallback(async (pendingToken: string, code: string) => {
     const payload = await apiFetch<{ token: string; user: User }>(
-      "/api/auth/login/",
+      "/api/auth/2fa/verify/",
       {
         method: "POST",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ pending_token: pendingToken, code }),
       },
     );
     localStorage.setItem(TOKEN_KEY, payload.token);
     setToken(payload.token);
     setUser(payload.user);
   }, []);
+
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    const profile = await apiFetch<User>("/api/auth/me/", {}, token);
+    setUser(profile);
+  }, [token]);
 
   const logout = useCallback(async () => {
     if (token) {
@@ -75,8 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   const value = useMemo(
-    () => ({ user, token, loading, login, logout }),
-    [user, token, loading, login, logout],
+    () => ({ user, token, loading, login, verify2fa, refreshUser, logout }),
+    [user, token, loading, login, verify2fa, refreshUser, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -120,6 +161,14 @@ export function canAccessAuditLog(role: User["role"]): boolean {
 
 export function isArtistRole(role: User["role"]): boolean {
   return role === "artist";
+}
+
+export function canAccessContracts(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "ar" || role === "artist" || role === "admin";
+}
+
+export function canManageContracts(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
 }
 
 export function canViewRoster(role: User["role"]): boolean {

@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import Mandatory2FAEnforced
 from apps.catalog.models import Label
 from apps.catalog.views import _user_label_ids
 
@@ -36,7 +37,7 @@ class LabelExportQuerySerializer(serializers.Serializer):
 class LabelExportView(APIView):
     """Full label data export in JSON or CSV (ZIP). Scope follows user role (Gap 6)."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, Mandatory2FAEnforced]
 
     def get(self, request):
         if not request.user.label_memberships.exists():

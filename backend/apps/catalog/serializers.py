@@ -33,11 +33,24 @@ class LabelSerializer(serializers.ModelSerializer):
 
 class ArtistSerializer(serializers.ModelSerializer):
     slug = serializers.SlugField(required=False, allow_blank=True, default="")
+    username = serializers.SerializerMethodField()
 
     class Meta:
         model = Artist
-        fields = ("id", "label", "name", "slug", "user", "created_at", "updated_at")
-        read_only_fields = ("id", "created_at", "updated_at")
+        fields = (
+            "id",
+            "label",
+            "name",
+            "slug",
+            "user",
+            "username",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "user", "created_at", "updated_at")
+
+    def get_username(self, obj: Artist) -> str:
+        return obj.user.username if obj.user_id else ""
 
     def validate_label(self, label: Label) -> Label:
         if label.id not in _user_label_ids(self.context):
@@ -73,6 +86,7 @@ class TrackSerializer(serializers.ModelSerializer):
             "release",
             "title",
             "isrc",
+            "iswc",
             "track_number",
             "duration_seconds",
             "created_at",

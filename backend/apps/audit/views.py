@@ -4,13 +4,14 @@ from rest_framework import viewsets
 from apps.catalog.views import _user_label_ids
 
 from .models import AuditEvent
+from apps.accounts.permissions import Mandatory2FAEnforced
 from .permissions import CanAccessAuditLog
 from .serializers import AuditEventSerializer
 
 
 class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AuditEventSerializer
-    permission_classes = [CanAccessAuditLog]
+    permission_classes = [CanAccessAuditLog, Mandatory2FAEnforced]
 
     def get_queryset(self) -> QuerySet[AuditEvent]:
         qs = AuditEvent.objects.filter(

@@ -14,6 +14,7 @@ from apps.payments.models import Payout, PayoutBatch
 from apps.audit.models import AuditEvent
 from apps.royalties.models import RoyaltyLineItem, RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement
 from apps.splits.models import SplitEntry, SplitSheet
+from apps.contracts.models import Contract
 
 EXPORT_VERSION = "1.0"
 
@@ -48,6 +49,10 @@ def _includes_payments(user: User) -> bool:
     return user.role in {Role.MANAGER, Role.FINANCE, Role.ARTIST, Role.ADMIN}
 
 
+def _includes_contracts(user: User) -> bool:
+    return user.role in {Role.MANAGER, Role.FINANCE, Role.AR, Role.ARTIST, Role.ADMIN}
+
+
 def export_scope(user: User) -> str:
     if _includes_financial(user):
         return "full"
@@ -69,6 +74,8 @@ def build_export_payload(user: User, label: Label) -> dict[str, Any]:
         "catalog": _export_catalog(user, label),
     }
 
+    if _includes_contracts(user):
+        payload["contracts"] = _export_contracts(user, label)
     if _includes_splits(user):
         payload["splits"] = _export_splits(user, label)
     if _includes_financial(user):
@@ -105,12 +112,40 @@ def _export_catalog(user: User, label: Label) -> dict[str, list[dict[str, Any]]]
         ],
         "tracks": [
             {
-                **_row(t, ("id", "title", "isrc", "track_number", "duration_seconds", "created_at", "updated_at")),
+                **_row(t, ("id", "title", "isrc", "iswc", "track_number", "duration_seconds", "created_at", "updated_at")),
                 "release_id": t.release_id,
             }
             for t in tracks
         ],
     }
+
+
+def _export_contracts(user: User, label: Label) -> list[dict[str, Any]]:
+    contracts = Contract.objects.filter(label=label).select_related("artist")
+    if user.role == Role.ARTIST and hasattr(user, "artist_profile"):
+        contracts = contracts.filter(artist=user.artist_profile)
+
+    return [
+        {
+            **_row(
+                c,
+                (
+                    "id",
+                    "title",
+                    "contract_type",
+                    "status",
+                    "start_date",
+                    "end_date",
+                    "term_notes",
+                    "created_at",
+                    "updated_at",
+                ),
+            ),
+            "artist_id": c.artist_id,
+            "filename": c.file.name.rsplit("/", 1)[-1] if c.file else "",
+        }
+        for c in contracts
+    ]
 
 
 def _export_splits(user: User, label: Label) -> dict[str, list[dict[str, Any]]]:
@@ -333,6 +368,10 @@ def payload_to_csv_zip(payload: dict[str, Any]) -> bytes:
         catalog = payload.get("catalog", {})
         for name, rows in catalog.items():
             archive.writestr(f"catalog/{name}.csv", _write_csv(rows))
+
+        contracts = payload.get("contracts", [])
+        if contracts:
+            archive.writestr("contracts/contracts.csv", _write_csv(contracts))
 
         splits = payload.get("splits", {})
         for name, rows in splits.items():

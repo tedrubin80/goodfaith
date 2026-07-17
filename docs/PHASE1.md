@@ -55,9 +55,10 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 ## Phase 2 (deferred)
 
-- Stripe Connect automated disbursement
-- S3/R2 object storage for statements and DAM
-- DDEX ingestion, ISWC, publishing admin
+See [`docs/PHASE2.md`](PHASE2.md) for what shipped (2FA, ISWC, S3 storage) vs. still deferred:
+
+- Stripe Connect automated disbursement *(payment model TBD)*
+- DDEX ingestion, publishing admin, contracts
 - Listmonk waitlist on marketing site
 
 See `CLAUDE.md` for full module roadmap.

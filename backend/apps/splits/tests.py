@@ -5,6 +5,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role
+from apps.accounts.test_utils import satisfy_mandatory_2fa
 from apps.catalog.models import Artist, Label, LabelMembership, Release, ReleaseType, Track
 
 from .models import SplitRole, SplitSheet
@@ -21,6 +22,7 @@ class SplitAPITests(TestCase):
             role=Role.MANAGER,
         )
         LabelMembership.objects.create(user=self.manager, label=self.label)
+        satisfy_mandatory_2fa(self.manager)
         self.ar_user = User.objects.create_user(
             username="splitar",
             password="testpass123",

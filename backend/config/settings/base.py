@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.splits",
     "apps.payments",
     "apps.audit",
+    "apps.contracts",
 ]
 
 MIDDLEWARE = [
@@ -103,6 +104,36 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Cache (2FA pending tokens; use Redis in Docker via DJANGO_CACHE_URL)
+_cache_url = env("DJANGO_CACHE_URL", default="")
+if _cache_url:
+    CACHES = {"default": env.cache("DJANGO_CACHE_URL")}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+# Optional S3-compatible object storage (Cloudflare R2, AWS S3) for statement uploads
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
+if AWS_STORAGE_BUCKET_NAME:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
+    AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default="")
+    AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="auto")
+    AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL", default="")
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

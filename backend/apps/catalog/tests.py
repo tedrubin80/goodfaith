@@ -150,3 +150,38 @@ class CatalogAPITests(TestCase):
         )
         self.assertEqual(track_response.status_code, 201)
         self.assertEqual(track_response.data["track_number"], 1)
+
+    def test_manager_can_invite_artist_portal_login(self):
+        unlinked = Artist.objects.create(
+            label=self.label,
+            name="Invite Me",
+            slug="invite-me",
+        )
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post(
+            f"/api/catalog/artists/{unlinked.pk}/invite/",
+            {
+                "username": "inviteartist",
+                "password": "securepass1",
+                "email": "invite@example.com",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        unlinked.refresh_from_db()
+        self.assertIsNotNone(unlinked.user_id)
+        self.assertEqual(unlinked.user.username, "inviteartist")
+        self.assertEqual(unlinked.user.role, Role.ARTIST)
+        self.assertTrue(
+            LabelMembership.objects.filter(user=unlinked.user, label=self.label).exists()
+        )
+        self.assertEqual(response.data["username"], "inviteartist")
+
+    def test_invite_rejected_when_already_linked(self):
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post(
+            f"/api/catalog/artists/{self.artist.pk}/invite/",
+            {"username": "another", "password": "securepass1"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)

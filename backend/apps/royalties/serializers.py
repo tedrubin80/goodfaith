@@ -103,6 +103,45 @@ class RoyaltyRunPayoutSerializer(serializers.ModelSerializer):
             return obj.role.replace("_", " ").title()
 
 
+class ArtistEarningsSerializer(serializers.ModelSerializer):
+    run_name = serializers.CharField(source="run.name", read_only=True)
+    run_status = serializers.CharField(source="run.status", read_only=True)
+    currency = serializers.CharField(source="run.currency", read_only=True)
+    run_created_at = serializers.DateTimeField(source="run.created_at", read_only=True)
+    role_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RoyaltyRunPayout
+        fields = (
+            "id",
+            "run",
+            "run_name",
+            "run_status",
+            "run_created_at",
+            "currency",
+            "track",
+            "isrc",
+            "track_title",
+            "participant_name",
+            "role",
+            "role_display",
+            "share_percentage",
+            "track_gross",
+            "amount",
+        )
+        read_only_fields = fields
+
+    def get_role_display(self, obj: RoyaltyRunPayout) -> str:
+        if not obj.role:
+            return ""
+        try:
+            from apps.splits.models import SplitRole
+
+            return SplitRole(obj.role).label
+        except ValueError:
+            return obj.role.replace("_", " ").title()
+
+
 class RoyaltyRunSerializer(serializers.ModelSerializer):
     statement_count = serializers.IntegerField(source="statements.count", read_only=True)
     payout_count = serializers.IntegerField(source="payouts.count", read_only=True)

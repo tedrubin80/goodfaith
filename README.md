@@ -70,7 +70,7 @@ Then sign in at http://localhost:3020/login.
 | Audit trail | ✅ |
 | Artist portal | ✅ |
 
-**Phase 2:** Stripe Connect, S3/R2 storage, DDEX, publishing admin, contracts.
+**Phase 2:** 2FA, ISWC, S3/R2, contracts scaffold, artist earnings + portal invites shipped. Stripe Connect, DDEX, publishing admin deferred.
 
 ## Production
 

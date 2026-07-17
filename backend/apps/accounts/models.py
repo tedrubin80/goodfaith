@@ -19,6 +19,17 @@ class User(AbstractUser):
     """
 
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.ARTIST)
+    totp_secret = models.CharField(max_length=32, blank=True, default="")
+    is_2fa_enabled = models.BooleanField(default=False)
+    backup_codes = models.JSONField(default=list, blank=True)
+
+    @property
+    def requires_2fa(self) -> bool:
+        return self.role in {Role.MANAGER, Role.FINANCE, Role.ADMIN}
+
+    @property
+    def must_enable_2fa(self) -> bool:
+        return self.requires_2fa and not self.is_2fa_enabled
 
     def __str__(self) -> str:
         return f"{self.username} ({self.role})"
