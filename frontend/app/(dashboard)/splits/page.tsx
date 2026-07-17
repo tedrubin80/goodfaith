@@ -5,7 +5,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
-import { canAccessSplits, canManageSplits, useAuth } from "@/lib/auth";
+import { canAccessSplits, canManageSplits, isArtistRole, useAuth } from "@/lib/auth";
 import type { SplitEntry, SplitSheet, Track } from "@/lib/types";
 import { SPLIT_ROLES } from "@/lib/types";
 
@@ -34,6 +34,7 @@ export default function SplitsPage() {
 
   const hasAccess = user && canAccessSplits(user.role);
   const canManage = user && canManageSplits(user.role);
+  const isArtist = user && isArtistRole(user.role);
 
   const sheetTrackIds = useMemo(
     () => new Set(sheets.map((sheet) => sheet.track)),
@@ -150,8 +151,12 @@ export default function SplitsPage() {
   return (
     <>
       <PageHeader
-        title="Splits"
-        description="Track-level master recording splits. Percentages must total 100% before a sheet can be finalized."
+        title={isArtist ? "My splits" : "Splits"}
+        description={
+          isArtist
+            ? "Your royalty share on tracks you're credited on."
+            : "Track-level master recording splits. Percentages must total 100% before a sheet can be finalized."
+        }
         action={
           canManage ? (
             <button

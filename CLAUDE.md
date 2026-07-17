@@ -175,7 +175,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | **Payments (Module 5 — partial)** | `PayoutBatch` (OneToOne to `RoyaltyRun`) + `Payout` (aggregated per participant). API at `/api/payments/`. `POST /api/payments/batches/from_run/` issues batch from a ready run and closes the run. `POST /api/payments/payouts/{id}/mark_paid/` records payment with optional reference. Finance/Manager/Admin manage; Artist read-own; A&R blocked. Portal at `/payments` with batch list + mark-paid. Stripe/ACH rails not yet integrated. |
 | **Data export (Gap 6 — partial)** | `GET /api/export/?export_format=json|csv&label={id}` — role-scoped full label export. Finance/Manager/Admin get catalog + splits + royalties + payments + audit log; Artist gets own catalog/splits/payouts; A&R gets catalog only. CSV returns a ZIP of per-table CSVs plus manifest JSON. Portal at `/export`. |
 | **Audit trail** | `AuditEvent` model — immutable log of statement uploads/parses, run consolidation, split finalization, payout issuance, and mark-paid. API at `/api/audit/events/` (Finance/Manager/Admin). Portal at `/activity`. Included in full data export. |
-| **Portal UI** | Next.js app at `frontend/` — login, dashboard, `/catalog`, `/splits`, `/royalties`, `/payments`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
+| **Portal UI** | Next.js app at `frontend/` — login, dashboard (role-aware), `/catalog`, `/splits`, `/royalties`, `/payments`, `/activity`, `/export`. Artist role gets dedicated home, simplified payouts view, and scoped nav labels. |
 | **Marketing site** | Astro static site at `marketing/` — hero, problem, 6 differentiators, pricing, social proof. Live at **usegoodfaith.com**. Waitlist form **removed** (Listmonk deferred); CTAs → pricing section and `hello@usegoodfaith.com`. |
 
 ### Not yet started (Phase 1 remaining)
@@ -195,7 +195,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 🟡 Payments          — batch issuance + manual mark-paid; Stripe rails next
 ✅ Data export       — JSON + CSV (ZIP), role-scoped
 ✅ Audit trail       — immutable financial activity log
-⬜ Artist Portals    — role-scoped views exist; dedicated artist UX not built
+⬜ Artist Portals    — dedicated artist dashboard + role-scoped nav labels shipped; polish next
 ⬜ Contracts → Publishing → Distribution → Analytics → rest
 ```
 

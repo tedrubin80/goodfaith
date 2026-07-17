@@ -4,26 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { canAccessAuditLog, canAccessPayments, canAccessRoyalties, canAccessSplits, useAuth } from "@/lib/auth";
+import { canAccessAuditLog, canAccessPayments, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
   label: string;
+  artistLabel?: string;
   requiresFinance?: boolean;
   requiresSplits?: boolean;
   requiresPayments?: boolean;
   requiresActivity?: boolean;
+  requiresRoster?: boolean;
 };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/catalog", label: "Catalog" },
-  { href: "/catalog/artists", label: "Artists" },
-  { href: "/splits", label: "Splits", requiresSplits: true },
+  { href: "/dashboard", label: "Overview", artistLabel: "Home" },
+  { href: "/catalog", label: "Catalog", artistLabel: "My releases" },
+  { href: "/catalog/artists", label: "Artists", requiresRoster: true },
+  { href: "/splits", label: "Splits", artistLabel: "My splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
-  { href: "/payments", label: "Payments", requiresPayments: true },
+  { href: "/payments", label: "Payments", artistLabel: "My payouts", requiresPayments: true },
   { href: "/activity", label: "Activity", requiresActivity: true },
-  { href: "/export", label: "Export" },
+  { href: "/export", label: "Export", artistLabel: "My data" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -32,12 +34,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const links = NAV.filter((item) => {
     if (!user) return false;
+    if (item.requiresRoster && !canViewRoster(user.role)) return false;
     if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
     if (item.requiresSplits && !canAccessSplits(user.role)) return false;
     if (item.requiresPayments && !canAccessPayments(user.role)) return false;
     if (item.requiresActivity && !canAccessAuditLog(user.role)) return false;
     return true;
-  });
+  }).map((item) => ({
+    ...item,
+    label: isArtistRole(user!.role) && item.artistLabel ? item.artistLabel : item.label,
+  }));
 
   return (
     <div className="min-h-full flex bg-[var(--color-bg)] text-[var(--color-ink)]">

@@ -117,3 +117,11 @@ export function canManageCatalog(role: User["role"]): boolean {
 export function canAccessAuditLog(role: User["role"]): boolean {
   return role === "manager" || role === "finance" || role === "admin";
 }
+
+export function isArtistRole(role: User["role"]): boolean {
+  return role === "artist";
+}
+
+export function canViewRoster(role: User["role"]): boolean {
+  return role !== "artist";
+}

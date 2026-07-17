@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
-import { canManageCatalog, useAuth } from "@/lib/auth";
+import { canManageCatalog, isArtistRole, useAuth } from "@/lib/auth";
 import {
   buttonPrimaryClassName,
   buttonSecondaryClassName,
@@ -37,6 +37,7 @@ export default function CatalogPage() {
   });
 
   const canManage = user && canManageCatalog(user.role);
+  const isArtist = user && isArtistRole(user.role);
 
   useEffect(() => {
     if (!token) return;
@@ -102,8 +103,12 @@ export default function CatalogPage() {
   return (
     <>
       <PageHeader
-        title="Catalog"
-        description="Releases, tracks, and identifiers across your roster."
+        title={isArtist ? "My releases" : "Catalog"}
+        description={
+          isArtist
+            ? "Releases you're credited on with the label."
+            : "Releases, tracks, and identifiers across your roster."
+        }
         action={
           <div className="flex gap-2">
             {canManage ? (

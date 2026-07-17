@@ -7,13 +7,14 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
-import { canAccessPayments, canManagePayments, useAuth } from "@/lib/auth";
+import { canAccessPayments, canManagePayments, isArtistRole, useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, titleCase } from "@/lib/format";
 import type { Payout, PayoutBatch } from "@/lib/types";
 
 export default function PaymentsPage() {
   const { token, user } = useAuth();
   const [batches, setBatches] = useState<PayoutBatch[]>([]);
+  const [artistPayouts, setArtistPayouts] = useState<Payout[]>([]);
   const [payoutsByBatch, setPayoutsByBatch] = useState<Record<number, Payout[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,20 +24,26 @@ export default function PaymentsPage() {
 
   const hasAccess = user && canAccessPayments(user.role);
   const canManage = user && canManagePayments(user.role);
+  const isArtist = user && isArtistRole(user.role);
 
   const loadBatches = useCallback(async () => {
     if (!token || !hasAccess) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch<PayoutBatch[]>("/api/payments/batches/", {}, token);
-      setBatches(data);
+      if (isArtist) {
+        const data = await apiFetch<Payout[]>("/api/payments/payouts/", {}, token);
+        setArtistPayouts(data);
+      } else {
+        const data = await apiFetch<PayoutBatch[]>("/api/payments/batches/", {}, token);
+        setBatches(data);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load payout batches.");
+      setError(err instanceof Error ? err.message : "Failed to load payouts.");
     } finally {
       setLoading(false);
     }
-  }, [token, hasAccess]);
+  }, [token, hasAccess, isArtist]);
 
   useEffect(() => {
     loadBatches();
@@ -105,7 +112,7 @@ export default function PaymentsPage() {
   return (
     <>
       <PageHeader
-        title="Payments"
+        title={isArtist ? "My payouts" : "Payments"}
         description={
           canManage
             ? "Issue payout batches from consolidated royalty runs and record payments."
@@ -121,6 +128,48 @@ export default function PaymentsPage() {
 
       {loading ? (
         <p className="text-sm text-[var(--color-muted)]">Loading payouts…</p>
+      ) : isArtist ? (
+        artistPayouts.length === 0 ? (
+          <EmptyState
+            title="No payouts yet"
+            description="Payouts will appear here once your label issues a batch that includes you."
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-[var(--color-border)]">
+            <table className="w-full text-sm">
+              <thead className="bg-[var(--color-surface)] text-left text-[var(--color-muted)]">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Amount</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Issued</th>
+                  <th className="px-4 py-3 font-medium">Paid</th>
+                  <th className="px-4 py-3 font-medium">Reference</th>
+                </tr>
+              </thead>
+              <tbody>
+                {artistPayouts.map((payout) => (
+                  <tr key={payout.id} className="border-t border-[var(--color-border)]">
+                    <td className="px-4 py-3 font-medium tabular-nums">
+                      {formatMoney(payout.amount)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={payout.status} />
+                    </td>
+                    <td className="px-4 py-3 text-[var(--color-muted)]">
+                      {formatDate(payout.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-[var(--color-muted)]">
+                      {formatDate(payout.paid_at)}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[var(--color-muted)]">
+                      {payout.payment_reference || "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : batches.length === 0 ? (
         <EmptyState
           title="No payout batches yet"
