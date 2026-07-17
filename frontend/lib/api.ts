@@ -32,8 +32,21 @@ export async function apiFetch<T>(
   if (!response.ok) {
     let message = response.statusText;
     try {
-      const payload = (await response.json()) as { detail?: string };
-      if (payload.detail) message = payload.detail;
+      const payload = (await response.json()) as Record<string, unknown>;
+      if (typeof payload.detail === "string") {
+        message = payload.detail;
+      } else if (typeof payload === "object" && payload !== null) {
+        const parts = Object.entries(payload).flatMap(([key, value]) => {
+          if (Array.isArray(value)) {
+            return value.map((item) => `${key}: ${String(item)}`);
+          }
+          if (typeof value === "string") {
+            return [`${key}: ${value}`];
+          }
+          return [];
+        });
+        if (parts.length > 0) message = parts.join(" ");
+      }
     } catch {
       // ignore parse errors
     }

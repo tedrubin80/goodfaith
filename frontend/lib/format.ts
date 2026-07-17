@@ -7,6 +7,17 @@ export function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+export function formatDateTime(value: string | null): string {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 export function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
   const mins = Math.floor(seconds / 60);

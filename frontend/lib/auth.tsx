@@ -109,3 +109,11 @@ export function canAccessPayments(role: User["role"]): boolean {
 export function canManagePayments(role: User["role"]): boolean {
   return role === "manager" || role === "finance" || role === "admin";
 }
+
+export function canManageCatalog(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "ar" || role === "admin";
+}
+
+export function canAccessAuditLog(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "admin";
+}

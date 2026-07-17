@@ -102,3 +102,51 @@ class CatalogAPITests(TestCase):
     def test_unauthenticated_cannot_access_catalog(self):
         response = self.client.get("/api/catalog/artists/")
         self.assertEqual(response.status_code, 403)
+
+    def test_cannot_create_artist_for_other_label(self):
+        other_label = Label.objects.create(name="Other Label", slug="other-label")
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post(
+            "/api/catalog/artists/",
+            {"label": other_label.pk, "name": "Sneaky", "slug": "sneaky"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_auto_slug_on_artist_create(self):
+        self.client.force_authenticate(user=self.manager)
+        response = self.client.post(
+            "/api/catalog/artists/",
+            {"label": self.label.pk, "name": "Auto Slug Artist"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["slug"], "auto-slug-artist")
+
+    def test_manager_can_create_release_and_track(self):
+        self.client.force_authenticate(user=self.manager)
+        release_response = self.client.post(
+            "/api/catalog/releases/",
+            {
+                "label": self.label.pk,
+                "primary_artist": self.artist.pk,
+                "title": "New Single",
+                "release_type": ReleaseType.SINGLE,
+                "upc": "987654321098",
+            },
+            format="json",
+        )
+        self.assertEqual(release_response.status_code, 201)
+        release_id = release_response.data["id"]
+
+        track_response = self.client.post(
+            "/api/catalog/tracks/",
+            {
+                "release": release_id,
+                "title": "Track One",
+                "isrc": "USRC17607841",
+            },
+            format="json",
+        )
+        self.assertEqual(track_response.status_code, 201)
+        self.assertEqual(track_response.data["track_number"], 1)

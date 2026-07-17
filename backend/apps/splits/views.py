@@ -2,9 +2,11 @@ from django.db.models import Q, QuerySet
 from rest_framework import viewsets
 
 from apps.accounts.models import Role
+from apps.audit.models import AuditAction
+from apps.audit.services import log_audit_event
 from apps.catalog.views import _user_label_ids
 
-from .models import SplitSheet
+from .models import SplitSheet, SplitSheetStatus
 from .permissions import CanAccessSplits
 from .serializers import SplitSheetCreateSerializer, SplitSheetSerializer
 
@@ -41,3 +43,31 @@ class SplitSheetViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context["label_ids"] = set(_user_label_ids(self.request.user))
         return context
+
+    def _log_finalized(self, sheet: SplitSheet) -> None:
+        log_audit_event(
+            label_id=sheet.track.release.label_id,
+            action=AuditAction.SPLIT_SHEET_FINALIZED,
+            resource_type="split_sheet",
+            resource_id=sheet.pk,
+            summary=f"Finalized split sheet for “{sheet.track.title}”",
+            actor=self.request.user,
+            metadata={
+                "track_id": sheet.track_id,
+                "track_title": sheet.track.title,
+                "isrc": sheet.track.isrc,
+                "entry_count": sheet.entries.count(),
+                "total_percentage": str(sheet.total_percentage),
+            },
+        )
+
+    def perform_create(self, serializer):
+        sheet = serializer.save()
+        if sheet.status == SplitSheetStatus.FINALIZED:
+            self._log_finalized(sheet)
+
+    def perform_update(self, serializer):
+        previous_status = serializer.instance.status
+        sheet = serializer.save()
+        if sheet.status == SplitSheetStatus.FINALIZED and previous_status != SplitSheetStatus.FINALIZED:
+            self._log_finalized(sheet)

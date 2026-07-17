@@ -6,6 +6,9 @@ from rest_framework.response import Response
 
 from apps.catalog.views import _user_label_ids
 
+from apps.audit.models import AuditAction
+from apps.audit.services import log_audit_event
+
 from .models import RoyaltyRun, RoyaltyStatement, StatementStatus
 from .consolidation import ConsolidationError, consolidate_run
 from .permissions import CanAccessRoyalties
@@ -18,6 +21,23 @@ from .serializers import (
     RoyaltyStatementUploadSerializer,
 )
 from .tasks import process_statement
+
+
+def _log_run_consolidated(run: RoyaltyRun, *, actor) -> None:
+    log_audit_event(
+        label_id=run.label_id,
+        action=AuditAction.RUN_CONSOLIDATED,
+        resource_type="royalty_run",
+        resource_id=run.pk,
+        summary=f"Consolidated run “{run.name}” — {run.total_amount} {run.currency}",
+        actor=actor,
+        metadata={
+            "total_amount": str(run.total_amount),
+            "currency": run.currency,
+            "payout_count": run.payouts.count(),
+            "status": run.status,
+        },
+    )
 
 
 class RoyaltyStatementViewSet(viewsets.ModelViewSet):
@@ -37,12 +57,24 @@ class RoyaltyStatementViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         uploaded = self.request.FILES.get("file")
         filename = uploaded.name if uploaded else "statement"
-        serializer.save(
+        statement = serializer.save(
             uploaded_by=self.request.user,
             filename=filename,
             status=StatementStatus.PENDING,
         )
-        process_statement.delay(serializer.instance.pk)
+        log_audit_event(
+            label_id=statement.label_id,
+            action=AuditAction.STATEMENT_UPLOADED,
+            resource_type="royalty_statement",
+            resource_id=statement.pk,
+            summary=f"Uploaded {statement.get_distributor_display()} statement {filename}",
+            actor=self.request.user,
+            metadata={
+                "distributor": statement.distributor,
+                "filename": filename,
+            },
+        )
+        process_statement.delay(statement.pk)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -63,6 +95,14 @@ class RoyaltyStatementViewSet(viewsets.ModelViewSet):
         statement = self.get_object()
         statement.status = StatementStatus.PENDING
         statement.save(update_fields=["status", "updated_at"])
+        log_audit_event(
+            label_id=statement.label_id,
+            action=AuditAction.STATEMENT_REPROCESSED,
+            resource_type="royalty_statement",
+            resource_id=statement.pk,
+            summary=f"Reprocess requested for {statement.filename}",
+            actor=request.user,
+        )
         process_statement.delay(statement.pk)
         return Response(RoyaltyStatementSerializer(statement).data)
 
@@ -89,6 +129,16 @@ class RoyaltyRunViewSet(viewsets.ModelViewSet):
         except ConsolidationError as exc:
             run.delete()
             raise serializers.ValidationError({"detail": str(exc)}) from exc
+        log_audit_event(
+            label_id=run.label_id,
+            action=AuditAction.RUN_CREATED,
+            resource_type="royalty_run",
+            resource_id=run.pk,
+            summary=f"Created royalty run “{run.name}”",
+            actor=request.user,
+            metadata={"statement_ids": list(run.statements.values_list("id", flat=True))},
+        )
+        _log_run_consolidated(run, actor=request.user)
         output = RoyaltyRunSerializer(run)
         headers = self.get_success_headers(output.data)
         return Response(output.data, status=201, headers=headers)
@@ -107,7 +157,17 @@ class RoyaltyRunViewSet(viewsets.ModelViewSet):
         except ConsolidationError as exc:
             run.consolidation_error = str(exc)
             run.save(update_fields=["consolidation_error", "updated_at"])
+            log_audit_event(
+                label_id=run.label_id,
+                action=AuditAction.RUN_CONSOLIDATION_FAILED,
+                resource_type="royalty_run",
+                resource_id=run.pk,
+                summary=f"Consolidation failed for “{run.name}”",
+                actor=request.user,
+                metadata={"error": str(exc)},
+            )
             return Response({"detail": str(exc)}, status=400)
         run.consolidation_error = ""
         run.save(update_fields=["consolidation_error", "updated_at"])
+        _log_run_consolidated(run, actor=request.user)
         return Response(RoyaltyRunSerializer(run).data)

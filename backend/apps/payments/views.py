@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from apps.accounts.models import Role
 from apps.catalog.views import _user_label_ids
 
+from apps.audit.models import AuditAction
+from apps.audit.services import log_audit_event
+
 from .models import Payout, PayoutBatch
 from .permissions import CanAccessPayments
 from .serializers import (
@@ -41,6 +44,20 @@ class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
             batch = generate_payout_batch(run)
         except PayoutGenerationError as exc:
             raise serializers.ValidationError({"detail": str(exc)}) from exc
+        log_audit_event(
+            label_id=batch.label_id,
+            action=AuditAction.PAYOUT_BATCH_ISSUED,
+            resource_type="payout_batch",
+            resource_id=batch.pk,
+            summary=f"Issued payout batch “{batch.name}” — {batch.total_amount} {batch.currency}",
+            actor=request.user,
+            metadata={
+                "run_id": run.pk,
+                "total_amount": str(batch.total_amount),
+                "currency": batch.currency,
+                "payout_count": batch.payouts.count(),
+            },
+        )
         return Response(PayoutBatchSerializer(batch).data, status=201)
 
     @action(detail=True, methods=["get"])
@@ -75,4 +92,18 @@ class PayoutViewSet(viewsets.ReadOnlyModelViewSet):
         body = MarkPayoutPaidSerializer(data=request.data)
         body.is_valid(raise_exception=True)
         payout.mark_paid(body.validated_data.get("payment_reference", ""))
+        log_audit_event(
+            label_id=payout.batch.label_id,
+            action=AuditAction.PAYOUT_MARKED_PAID,
+            resource_type="payout",
+            resource_id=payout.pk,
+            summary=f"Marked paid: {payout.participant_name} — {payout.amount} {payout.batch.currency}",
+            actor=request.user,
+            metadata={
+                "batch_id": payout.batch_id,
+                "participant_name": payout.participant_name,
+                "amount": str(payout.amount),
+                "payment_reference": payout.payment_reference,
+            },
+        )
         return Response(PayoutSerializer(payout).data)

@@ -38,12 +38,21 @@ export type Release = {
   primary_artist: number;
   primary_artist_name: string;
   title: string;
-  release_type: "album" | "ep" | "single" | "compilation";
+  release_type: ReleaseType;
   upc: string | null;
   release_date: string | null;
   tracks: Track[];
   track_count: number;
 };
+
+export type ReleaseType = "album" | "ep" | "single" | "compilation";
+
+export const RELEASE_TYPES: { value: ReleaseType; label: string }[] = [
+  { value: "single", label: "Single" },
+  { value: "ep", label: "EP" },
+  { value: "album", label: "Album" },
+  { value: "compilation", label: "Compilation" },
+];
 
 export type StatementStatus = "pending" | "processing" | "processed" | "failed";
 
@@ -119,6 +128,20 @@ export type Payout = {
   status: "pending" | "paid" | "cancelled";
   paid_at: string | null;
   payment_reference: string;
+  created_at: string;
+};
+
+export type AuditEvent = {
+  id: number;
+  label: number;
+  actor: number | null;
+  actor_username: string | null;
+  action: string;
+  action_display: string;
+  resource_type: string;
+  resource_id: number;
+  summary: string;
+  metadata: Record<string, unknown>;
   created_at: string;
 };
 

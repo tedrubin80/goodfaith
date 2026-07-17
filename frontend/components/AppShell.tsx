@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { canAccessPayments, canAccessRoyalties, canAccessSplits, useAuth } from "@/lib/auth";
+import { canAccessAuditLog, canAccessPayments, canAccessRoyalties, canAccessSplits, useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
@@ -12,6 +12,7 @@ type NavItem = {
   requiresFinance?: boolean;
   requiresSplits?: boolean;
   requiresPayments?: boolean;
+  requiresActivity?: boolean;
 };
 
 const NAV: NavItem[] = [
@@ -21,6 +22,7 @@ const NAV: NavItem[] = [
   { href: "/splits", label: "Splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
   { href: "/payments", label: "Payments", requiresPayments: true },
+  { href: "/activity", label: "Activity", requiresActivity: true },
   { href: "/export", label: "Export" },
 ];
 
@@ -33,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
     if (item.requiresSplits && !canAccessSplits(user.role)) return false;
     if (item.requiresPayments && !canAccessPayments(user.role)) return false;
+    if (item.requiresActivity && !canAccessAuditLog(user.role)) return false;
     return true;
   });
 

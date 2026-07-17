@@ -169,18 +169,18 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | **Platform / Infrastructure** | Django 6 + DRF, PostgreSQL, Redis, Celery worker, Docker Compose stack, health check at `/api/health/` |
 | **Auth** | Token auth via `rest_framework.authtoken` — `/api/auth/login/`, `/logout/`, `/me/` |
 | **RBAC (Gap 5)** | `accounts.User` with `Role` enum (artist/manager/finance/ar/admin). Permission classes key off `user.role`, not `is_staff`. Catalog and royalties enforce role boundaries in queryset filters and write permissions. |
-| **Catalog (Module 1 — partial)** | `Label`, `LabelMembership`, `Artist`, `Release`, `Track` models. ISRC on tracks, UPC on releases. API at `/api/catalog/` (labels, artists, releases, tracks). Artists scoped to own releases; managers/finance/A&R/admin see full label catalog. |
+| **Catalog (Module 1 — partial)** | `Label`, `LabelMembership`, `Artist`, `Release`, `Track` models. ISRC on tracks, UPC on releases. API at `/api/catalog/`. Portal CRUD at `/catalog`, `/catalog/artists`, and release detail (tracks). Manager/Finance/A&R/Admin write; Artists read-own. |
 | **Royalties (Module 4 — partial)** | `RoyaltyStatement`, `RoyaltyLineItem`, `RoyaltyRun`, `RoyaltyRunPayout`. Statement parser live (Gap 1). **Run consolidation live**: combines processed statements, applies finalized split sheets per track, exposes per-participant payouts at `/api/royalties/runs/{id}/payouts/`. Portal: statement detail, run create, run payout breakdown, issue payouts. |
 | **Splits (Module 7 — partial)** | `SplitSheet` (one per track) + `SplitEntry` (participant, role, percentage). API at `/api/splits/sheets/`. Finalized sheets must total 100%. Manager/Finance/Admin write; Artist read-own; A&R blocked. Portal UI at `/splits` with create + expandable entry view. Applied during royalty run consolidation. |
 | **Payments (Module 5 — partial)** | `PayoutBatch` (OneToOne to `RoyaltyRun`) + `Payout` (aggregated per participant). API at `/api/payments/`. `POST /api/payments/batches/from_run/` issues batch from a ready run and closes the run. `POST /api/payments/payouts/{id}/mark_paid/` records payment with optional reference. Finance/Manager/Admin manage; Artist read-own; A&R blocked. Portal at `/payments` with batch list + mark-paid. Stripe/ACH rails not yet integrated. |
-| **Data export (Gap 6 — partial)** | `GET /api/export/?export_format=json|csv&label={id}` — role-scoped full label export. Finance/Manager/Admin get catalog + splits + royalties + payments; Artist gets own catalog/splits/payouts; A&R gets catalog only. CSV returns a ZIP of per-table CSVs plus manifest JSON. Portal at `/export`. |
-| **Portal UI** | Next.js app at `frontend/` — login, dashboard, `/catalog`, `/splits`, `/royalties`, `/payments`, `/export`. Brand OKLCH tokens aligned with marketing site. |
+| **Data export (Gap 6 — partial)** | `GET /api/export/?export_format=json|csv&label={id}` — role-scoped full label export. Finance/Manager/Admin get catalog + splits + royalties + payments + audit log; Artist gets own catalog/splits/payouts; A&R gets catalog only. CSV returns a ZIP of per-table CSVs plus manifest JSON. Portal at `/export`. |
+| **Audit trail** | `AuditEvent` model — immutable log of statement uploads/parses, run consolidation, split finalization, payout issuance, and mark-paid. API at `/api/audit/events/` (Finance/Manager/Admin). Portal at `/activity`. Included in full data export. |
+| **Portal UI** | Next.js app at `frontend/` — login, dashboard, `/catalog`, `/splits`, `/royalties`, `/payments`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
 | **Marketing site** | Astro static site at `marketing/` — hero, problem, 6 differentiators, pricing, social proof. Live at **usegoodfaith.com**. Waitlist form **removed** (Listmonk deferred); CTAs → pricing section and `hello@usegoodfaith.com`. |
 
 ### Not yet started (Phase 1 remaining)
 
 - Stripe / ACH payment rails (automated disbursement)
-- Audit trail for financial changes
 - DAM / file asset storage beyond statement uploads
 - Metadata management depth beyond core identifiers
 - Listmonk waitlist integration on marketing site
@@ -189,11 +189,12 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 
 ```
 ✅ Platform/Infrastructure
-🟡 Catalog          — models + API + read UI; no portal create/edit yet
+🟡 Catalog          — models + API + portal CRUD for artists, releases, tracks
 🟡 Royalty Accounting — parser + run consolidation + payout issuance live
 🟡 Splits            — track-level sheets + portal UI; applied in consolidation
 🟡 Payments          — batch issuance + manual mark-paid; Stripe rails next
 ✅ Data export       — JSON + CSV (ZIP), role-scoped
+✅ Audit trail       — immutable financial activity log
 ⬜ Artist Portals    — role-scoped views exist; dedicated artist UX not built
 ⬜ Contracts → Publishing → Distribution → Analytics → rest
 ```
@@ -207,7 +208,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | `backend/apps/catalog/` | Label tenancy, artists, releases, tracks |
 | `backend/apps/royalties/` | Statement upload, statement parser (`parsers/`), Celery task, royalty runs |
 | `backend/apps/splits/` | Track-level split sheets and entries |
-| `backend/apps/payments/` | Payout batches and participant payouts from royalty runs |
+| `backend/apps/audit/` | Immutable audit log for financial changes |
 | `frontend/` | Next.js portal (port 3020 in dev) |
 | `marketing/` | Astro marketing site; build output in `marketing/dist/` |
 | `PRODUCT.md` | Marketing-site brand brief (trust tone, anti-references, design principles) |
@@ -232,6 +233,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | `/api/payments/payouts/` | List payouts; Artist read-own |
 | `POST /api/payments/payouts/{id}/mark_paid/` | Finance, Manager, Admin — record payment |
 | `GET /api/export/?export_format=json\|csv` | Label members — role-scoped data export |
+| `/api/audit/events/` | Finance, Manager, Admin — immutable activity log |
 
 ### Local dev quick start
 
@@ -253,8 +255,8 @@ Upload dev files land in `backend/media/` (gitignored).
 - **DDEX ingestion** — industry standard for DSP/distributor data exchange
 - **ISRC / UPC / ISWC storage and management** — core identifiers *(ISRC + UPC on catalog models today; ISWC not yet)*
 - **Role-based access control (RBAC)** — Artist / Manager / Finance / A&R / Admin roles from day one *(implemented on catalog + royalties APIs and portal nav)*
-- **Full data export (CSV + JSON)** — must be a first-class feature, not an afterthought
-- **Audit trail** — immutable log of all financial changes
+- **Full data export (CSV + JSON)** — must be a first-class feature, not an afterthought *(shipped — role-scoped JSON/CSV export)*
+- **Audit trail** — immutable log of all financial changes *(shipped — `AuditEvent` + `/activity` portal)*
 
 ### Data Standards to Support
 - **DDEX** — distribution and royalty data exchange
@@ -372,6 +374,6 @@ All findings are grounded in fetched, first-party pages. Key sources:
 5. **Pricing constraint:** Never propose a percentage-of-earnings model. Flat fee only.
 6. **Trust is the #1 brand value.** Data portability, transparent pricing, and role-based access are non-negotiable.
 7. When writing product copy, pull from the verbatim Reddit quotes in the Community Intelligence section — they are the exact language the market uses.
-8. **Module build order:** Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → Contracts → Publishing Admin → Distribution → Analytics → everything else. Royalty parser, run consolidation, splits, manual payout issuance, and role-scoped data export shipped. **Current focus:** Stripe/ACH rails + audit trail.
+8. **Module build order:** Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → Contracts → Publishing Admin → Distribution → Analytics → everything else. Phase 1 core loop shipped including catalog CRUD, audit trail, and data export. **Current focus:** Artist portal UX + Stripe/ACH rails.
 9. **Marketing vs portal:** `marketing/` is the public pre-launch site (`PRODUCT.md` governs copy/design). `frontend/` is the authenticated label portal. Do not add a waitlist form until Listmonk is configured.
 10. **Financial data access:** Artist and A&R roles must never see royalty statements, splits, or payout data — enforce in API queryset filters and portal nav, not just UI hiding.

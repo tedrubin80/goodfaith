@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.accounts.models import Role, User
 from apps.catalog.models import Artist, Label, Release, Track
 from apps.payments.models import Payout, PayoutBatch
+from apps.audit.models import AuditEvent
 from apps.royalties.models import RoyaltyLineItem, RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement
 from apps.splits.models import SplitEntry, SplitSheet
 
@@ -72,6 +73,7 @@ def build_export_payload(user: User, label: Label) -> dict[str, Any]:
         payload["splits"] = _export_splits(user, label)
     if _includes_financial(user):
         payload["royalties"] = _export_royalties(label)
+        payload["audit"] = _export_audit(label)
     if _includes_payments(user):
         payload["payments"] = _export_payments(user, label)
 
@@ -276,6 +278,31 @@ def _export_payments(user: User, label: Label) -> dict[str, list[dict[str, Any]]
     }
 
 
+def _export_audit(label: Label) -> dict[str, list[dict[str, Any]]]:
+    events = AuditEvent.objects.filter(label=label).select_related("actor")
+    return {
+        "events": [
+            {
+                **_row(
+                    event,
+                    (
+                        "id",
+                        "actor_id",
+                        "action",
+                        "resource_type",
+                        "resource_id",
+                        "summary",
+                        "created_at",
+                    ),
+                ),
+                "actor_username": event.actor.username if event.actor_id else None,
+                "metadata": event.metadata,
+            }
+            for event in events
+        ],
+    }
+
+
 def payload_to_json(payload: dict[str, Any]) -> bytes:
     return json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
 
@@ -318,6 +345,10 @@ def payload_to_csv_zip(payload: dict[str, Any]) -> bytes:
         payments = payload.get("payments", {})
         for name, rows in payments.items():
             archive.writestr(f"payments/{name}.csv", _write_csv(rows))
+
+        audit = payload.get("audit", {})
+        for name, rows in audit.items():
+            archive.writestr(f"audit/{name}.csv", _write_csv(rows))
 
     buffer.seek(0)
     return buffer.read()

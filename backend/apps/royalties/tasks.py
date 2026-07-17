@@ -5,6 +5,9 @@ from django.db import transaction
 
 from apps.catalog.models import Track
 
+from apps.audit.models import AuditAction
+from apps.audit.services import log_audit_event
+
 from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyStatement, StatementStatus
 from .parsers.aliases import aliases_for
 from .parsers.base import StatementParseError, load_dataframe, normalize_rows
@@ -29,11 +32,27 @@ def process_statement(statement_id: int) -> None:
         statement.status = StatementStatus.FAILED
         statement.error_message = str(exc)
         statement.save(update_fields=["status", "error_message", "updated_at"])
+        log_audit_event(
+            label_id=statement.label_id,
+            action=AuditAction.STATEMENT_FAILED,
+            resource_type="royalty_statement",
+            resource_id=statement.pk,
+            summary=f"Parse failed for {statement.filename}",
+            metadata={"error": str(exc)},
+        )
         return
     except Exception as exc:  # noqa: BLE001 — surface any parse failure on the statement
         statement.status = StatementStatus.FAILED
         statement.error_message = f"Unexpected error while parsing: {exc}"
         statement.save(update_fields=["status", "error_message", "updated_at"])
+        log_audit_event(
+            label_id=statement.label_id,
+            action=AuditAction.STATEMENT_FAILED,
+            resource_type="royalty_statement",
+            resource_id=statement.pk,
+            summary=f"Parse failed for {statement.filename}",
+            metadata={"error": str(exc)},
+        )
         return
 
     isrcs = {row.isrc for row in rows if row.isrc}
@@ -74,6 +93,19 @@ def process_statement(statement_id: int) -> None:
             statement.error_message = f"Skipped {skipped} row(s) with no readable amount."
         statement.save(
             update_fields=["row_count", "total_amount", "status", "error_message", "updated_at"]
+        )
+        log_audit_event(
+            label_id=statement.label_id,
+            action=AuditAction.STATEMENT_PROCESSED,
+            resource_type="royalty_statement",
+            resource_id=statement.pk,
+            summary=f"Processed {statement.filename} — {total_amount} {statement.currency}",
+            metadata={
+                "row_count": len(line_items),
+                "total_amount": str(total_amount),
+                "currency": statement.currency,
+                "skipped_rows": skipped,
+            },
         )
 
 
