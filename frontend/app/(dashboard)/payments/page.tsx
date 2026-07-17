@@ -6,7 +6,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, downloadAchExport } from "@/lib/api";
 import { canAccessPayments, canManagePayments, isArtistRole, useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, titleCase } from "@/lib/format";
 import type { Payout, PayoutBatch } from "@/lib/types";
@@ -20,6 +20,7 @@ export default function PaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [markingId, setMarkingId] = useState<number | null>(null);
+  const [exportingBatchId, setExportingBatchId] = useState<number | null>(null);
   const [references, setReferences] = useState<Record<number, string>>({});
 
   const hasAccess = user && canAccessPayments(user.role);
@@ -70,6 +71,19 @@ export default function PaymentsPage() {
     }
     setExpandedId(batchId);
     await loadPayouts(batchId);
+  }
+
+  async function exportAch(batchId: number) {
+    if (!token || !canManage) return;
+    setExportingBatchId(batchId);
+    setError(null);
+    try {
+      await downloadAchExport(batchId, token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ACH export failed.");
+    } finally {
+      setExportingBatchId(null);
+    }
   }
 
   async function markPaid(payout: Payout) {
@@ -201,6 +215,7 @@ export default function PaymentsPage() {
                 <th className="px-4 py-3 font-medium text-right">Total</th>
                 <th className="px-4 py-3 font-medium text-right">Paid</th>
                 <th className="px-4 py-3 font-medium">Created</th>
+                {canManage ? <th className="px-4 py-3 font-medium text-right">Actions</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -238,10 +253,25 @@ export default function PaymentsPage() {
                       <td className="px-4 py-3 text-[var(--color-muted)]">
                         {formatDate(batch.created_at)}
                       </td>
+                      {canManage ? (
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            disabled={exportingBatchId === batch.id}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              exportAch(batch.id);
+                            }}
+                            className="text-xs font-medium text-[var(--color-primary-text)] hover:underline disabled:opacity-50"
+                          >
+                            {exportingBatchId === batch.id ? "Exporting…" : "ACH CSV"}
+                          </button>
+                        </td>
+                      ) : null}
                     </tr>
                     {expanded ? (
                       <tr className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
-                        <td colSpan={7} className="px-4 py-4">
+                        <td colSpan={canManage ? 8 : 7} className="px-4 py-4">
                           {payouts.length === 0 ? (
                             <p className="text-sm text-[var(--color-muted)]">Loading payouts…</p>
                           ) : (

@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.db.models import Q, QuerySet
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
@@ -17,6 +18,7 @@ from .serializers import (
     PayoutBatchSerializer,
     PayoutSerializer,
 )
+from .ach_export import ach_export_filename, payout_batch_ach_csv
 from .services import PayoutGenerationError, generate_payout_batch
 
 
@@ -59,6 +61,14 @@ class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
             },
         )
         return Response(PayoutBatchSerializer(batch).data, status=201)
+
+    @action(detail=True, methods=["get"])
+    def ach_export(self, request, pk=None):
+        batch = self.get_object()
+        content = payout_batch_ach_csv(batch)
+        response = HttpResponse(content, content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{ach_export_filename(batch)}"'
+        return response
 
     @action(detail=True, methods=["get"])
     def payouts(self, request, pk=None):

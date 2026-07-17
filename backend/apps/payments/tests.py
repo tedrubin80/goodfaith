@@ -130,3 +130,14 @@ class PaymentAPITests(TestCase):
             format="json",
         )
         self.assertEqual(response.status_code, 400)
+
+    def test_ach_export_csv(self):
+        self.client.post("/api/payments/batches/from_run/", {"run": self.run.pk}, format="json")
+        batch = PayoutBatch.objects.get()
+        response = self.client.get(f"/api/payments/batches/{batch.pk}/ach_export/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv")
+        body = response.content.decode()
+        self.assertIn("participant_name", body)
+        self.assertIn("Pay Artist", body)
+        self.assertIn("25.0000", body)

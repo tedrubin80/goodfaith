@@ -114,6 +114,9 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+
 # Run tasks synchronously under `manage.py test` / pytest so tests don't need a live broker.
 if "test" in sys.argv or "pytest" in sys.modules:
     CELERY_TASK_ALWAYS_EAGER = True

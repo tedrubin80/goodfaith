@@ -97,4 +97,26 @@ export async function downloadExport(
   URL.revokeObjectURL(url);
 }
 
+export async function downloadAchExport(batchId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/payments/batches/${batchId}/ach_export/`, {
+    headers: { Authorization: `Token ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new ApiError("ACH export failed.", response.status);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match?.[1] ?? `ach-batch-${batchId}.csv`;
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export { API_URL };

@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure environment
+        run: cp backend/.env.example backend/.env
+
+      - name: Start dependencies
+        run: docker compose up -d db redis
+
+      - name: Backend tests
+        run: docker compose run --rm --no-deps backend python manage.py test --verbosity=1
+
+      - name: Frontend build
+        run: docker compose run --rm --no-deps frontend npm run build
