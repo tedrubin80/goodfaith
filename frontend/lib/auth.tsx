@@ -171,6 +171,14 @@ export function canManageContracts(role: User["role"]): boolean {
   return role === "manager" || role === "ar" || role === "admin";
 }
 
+export function canAccessPublishing(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "ar" || role === "artist" || role === "admin";
+}
+
+export function canManagePublishing(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}
+
 export function canViewRoster(role: User["role"]): boolean {
   return role !== "artist";
 }

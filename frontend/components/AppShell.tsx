@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { canAccessAuditLog, canAccessContracts, canAccessPayments, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
+import { canAccessAuditLog, canAccessContracts, canAccessPayments, canAccessPublishing, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
@@ -16,6 +16,7 @@ type NavItem = {
   requiresActivity?: boolean;
   requiresRoster?: boolean;
   requiresContracts?: boolean;
+  requiresPublishing?: boolean;
   requiresEarnings?: boolean;
   artistOnly?: boolean;
 };
@@ -25,6 +26,7 @@ const NAV: NavItem[] = [
   { href: "/catalog", label: "Catalog", artistLabel: "My releases" },
   { href: "/catalog/artists", label: "Artists", requiresRoster: true },
   { href: "/contracts", label: "Contracts", artistLabel: "My contracts", requiresContracts: true },
+  { href: "/publishing", label: "Publishing", artistLabel: "My works", requiresPublishing: true },
   { href: "/earnings", label: "My earnings", requiresEarnings: true, artistOnly: true },
   { href: "/splits", label: "Splits", artistLabel: "My splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
@@ -44,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (item.requiresEarnings && !isArtistRole(user.role)) return false;
     if (item.requiresRoster && !canViewRoster(user.role)) return false;
     if (item.requiresContracts && !canAccessContracts(user.role)) return false;
+    if (item.requiresPublishing && !canAccessPublishing(user.role)) return false;
     if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
     if (item.requiresSplits && !canAccessSplits(user.role)) return false;
     if (item.requiresPayments && !canAccessPayments(user.role)) return false;

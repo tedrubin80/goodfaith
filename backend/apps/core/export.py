@@ -15,6 +15,7 @@ from apps.audit.models import AuditEvent
 from apps.royalties.models import RoyaltyLineItem, RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement
 from apps.splits.models import SplitEntry, SplitSheet
 from apps.contracts.models import Contract
+from apps.publishing.models import MusicalWork, WorkShare
 
 EXPORT_VERSION = "1.0"
 
@@ -53,6 +54,10 @@ def _includes_contracts(user: User) -> bool:
     return user.role in {Role.MANAGER, Role.FINANCE, Role.AR, Role.ARTIST, Role.ADMIN}
 
 
+def _includes_publishing(user: User) -> bool:
+    return user.role in {Role.MANAGER, Role.FINANCE, Role.AR, Role.ARTIST, Role.ADMIN}
+
+
 def export_scope(user: User) -> str:
     if _includes_financial(user):
         return "full"
@@ -76,6 +81,8 @@ def build_export_payload(user: User, label: Label) -> dict[str, Any]:
 
     if _includes_contracts(user):
         payload["contracts"] = _export_contracts(user, label)
+    if _includes_publishing(user):
+        payload["publishing"] = _export_publishing(user, label)
     if _includes_splits(user):
         payload["splits"] = _export_splits(user, label)
     if _includes_financial(user):
@@ -146,6 +153,61 @@ def _export_contracts(user: User, label: Label) -> list[dict[str, Any]]:
         }
         for c in contracts
     ]
+
+
+def _export_publishing(user: User, label: Label) -> dict[str, list[dict[str, Any]]]:
+    works = MusicalWork.objects.filter(label=label).prefetch_related("tracks", "shares")
+    if user.role == Role.ARTIST and hasattr(user, "artist_profile"):
+        artist = user.artist_profile
+        works = works.filter(
+            Q(shares__artist=artist) | Q(tracks__release__primary_artist=artist)
+        ).distinct()
+
+    work_list = list(works)
+    work_ids = [w.id for w in work_list]
+    shares = WorkShare.objects.filter(work_id__in=work_ids).select_related("work")
+
+    return {
+        "works": [
+            {
+                **_row(
+                    w,
+                    (
+                        "id",
+                        "title",
+                        "iswc",
+                        "registration_status",
+                        "target_pro",
+                        "notes",
+                        "created_at",
+                        "updated_at",
+                    ),
+                ),
+                "track_ids": list(w.tracks.values_list("id", flat=True)),
+            }
+            for w in work_list
+        ],
+        "shares": [
+            {
+                **_row(
+                    s,
+                    (
+                        "id",
+                        "contributor_name",
+                        "artist_id",
+                        "role",
+                        "percentage",
+                        "ipi_cae",
+                        "pro_affiliation",
+                        "created_at",
+                        "updated_at",
+                    ),
+                ),
+                "work_id": s.work_id,
+            }
+            for s in shares
+        ],
+    }
 
 
 def _export_splits(user: User, label: Label) -> dict[str, list[dict[str, Any]]]:
@@ -372,6 +434,10 @@ def payload_to_csv_zip(payload: dict[str, Any]) -> bytes:
         contracts = payload.get("contracts", [])
         if contracts:
             archive.writestr("contracts/contracts.csv", _write_csv(contracts))
+
+        publishing = payload.get("publishing", {})
+        for name, rows in publishing.items():
+            archive.writestr(f"publishing/{name}.csv", _write_csv(rows))
 
         splits = payload.get("splits", {})
         for name, rows in splits.items():

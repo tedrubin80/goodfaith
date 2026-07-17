@@ -73,12 +73,24 @@ Managers/A&R can create Artist-role logins from the roster:
 
 **Portal:** Artists page → **Invite** on unlinked roster entries.
 
+### Publishing administration (Module 8 — scaffold)
+
+Musical works with writer/publisher shares, ISWC, target PRO (ASCAP/BMI/SESAC/SOCAN), and registration status. Ready/submitted/registered requires shares totaling 100%.
+
+| Role | Access |
+|---|---|
+| Manager / A&R / Admin | Create and manage works |
+| Finance | Read-only |
+| Artist | Works they share on (or recordings they own) |
+
+**API:** `/api/publishing/works/` · **Portal:** `/publishing`
+
 ## Still deferred (Phase 2+)
 
 - Stripe Connect + subscription billing *(payment model TBD)*
-- DDEX ingestion
-- Contracts & publishing admin *(contracts scaffold shipped — see below)*
+- DDEX ingestion / CWR filing automation
+- Publishing depth (society API submission, ACK processing)
 - Listmonk waitlist on marketing site
-- Artist portal depth *(earnings view shipped; PDFs/notifications deferred)*
+- Statement PDFs / notifications
 
 See `CLAUDE.md` for the full module roadmap.

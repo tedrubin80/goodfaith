@@ -13,7 +13,10 @@ type BadgeStatus =
   | "finalized"
   | "active"
   | "expired"
-  | "terminated";
+  | "terminated"
+  | "ready"
+  | "submitted"
+  | "registered";
 
 const STYLES: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -30,6 +33,8 @@ const STYLES: Record<string, string> = {
   expired: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
   terminated: "bg-red-500/10 text-red-800 dark:text-red-200",
   finalized: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  submitted: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  registered: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
 };
 
 export function StatusBadge({

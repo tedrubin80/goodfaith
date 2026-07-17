@@ -84,7 +84,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | 5 | Payments & Payouts | Critical | Phase 1 |
 | 6 | Contract & Rights Management | High | Phase 2 (scaffold) |
 | 7 | Splits Management | High | Phase 1 |
-| 8 | Publishing Administration | High | Phase 2 |
+| 8 | Publishing Administration | High | Phase 2 (scaffold) |
 | 9 | Distribution & Release Management | High | Phase 2 |
 | 10 | Sync Licensing Management | Medium | Phase 3 |
 | 11 | A&R Management | Medium | Phase 3 |
@@ -192,6 +192,7 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 | **ISWC** on tracks | DDEX ingestion |
 | **S3/R2** object storage (optional env config) | Publishing admin depth |
 | **Contracts** scaffold (`/api/contracts/`, `/contracts`) | Obligation/AI extraction, e-sign |
+| **Publishing** scaffold (`/api/publishing/works/`, `/publishing`) | CWR filing, society APIs |
 | **Artist earnings** (`/earnings`) + **portal invites** | Statement PDFs, notifications |
 | Password change in Security settings | Listmonk waitlist |
 
@@ -207,7 +208,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 
 ```
 ✅ Phase 1 — Platform, catalog, royalties (10 distributors), splits, payments, export, audit, artist portal
-🟡 Phase 2 — 2FA, ISWC, S3, contracts scaffold, artist earnings/invites; Stripe/DDEX/publishing deferred
+🟡 Phase 2 — 2FA, ISWC, S3, contracts, publishing scaffold, artist earnings/invites; Stripe/DDEX deferred
 ⬜ Phase 3+ — A&R, sync, analytics, marketing, commerce
 ```
 
@@ -221,7 +222,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 | `backend/apps/royalties/` | Statement upload, parser (`parsers/`), Celery task, runs, consolidation |
 | `backend/apps/splits/` | Track-level split sheets and entries |
 | `backend/apps/payments/` | Payout batches, mark-paid, ACH CSV export |
-| `backend/apps/contracts/` | Contract repository (artist deals, licenses, PDF upload) |
+| `backend/apps/publishing/` | Musical works, writer shares, PRO registration status |
 | `frontend/` | Next.js portal (port 3020 in dev) |
 | `marketing/` | Astro marketing site; build output in `marketing/dist/` |
 | `PRODUCT.md` | Marketing-site brand brief |

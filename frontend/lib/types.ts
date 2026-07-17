@@ -174,6 +174,66 @@ export const CONTRACT_STATUSES: { value: ContractStatus; label: string }[] = [
   { value: "terminated", label: "Terminated" },
 ];
 
+export type ProSociety = "ascap" | "bmi" | "sesac" | "socan" | "other" | "";
+
+export type RegistrationStatus = "draft" | "ready" | "submitted" | "registered";
+
+export type ContributorRole = "writer" | "composer" | "publisher" | "admin";
+
+export type WorkShare = {
+  id?: number;
+  contributor_name: string;
+  artist: number | null;
+  artist_name?: string;
+  role: ContributorRole;
+  role_display?: string;
+  percentage: string;
+  ipi_cae: string;
+  pro_affiliation: ProSociety;
+  pro_affiliation_display?: string;
+};
+
+export type MusicalWork = {
+  id: number;
+  label: number;
+  title: string;
+  iswc: string | null;
+  registration_status: RegistrationStatus;
+  registration_status_display: string;
+  target_pro: ProSociety;
+  target_pro_display: string;
+  notes: string;
+  track_ids: number[];
+  track_titles: string[];
+  shares: WorkShare[];
+  total_percentage: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const PRO_SOCIETIES: { value: ProSociety; label: string }[] = [
+  { value: "", label: "Not set" },
+  { value: "ascap", label: "ASCAP" },
+  { value: "bmi", label: "BMI" },
+  { value: "sesac", label: "SESAC" },
+  { value: "socan", label: "SOCAN" },
+  { value: "other", label: "Other" },
+];
+
+export const REGISTRATION_STATUSES: { value: RegistrationStatus; label: string }[] = [
+  { value: "draft", label: "Draft" },
+  { value: "ready", label: "Ready to register" },
+  { value: "submitted", label: "Submitted" },
+  { value: "registered", label: "Registered" },
+];
+
+export const CONTRIBUTOR_ROLES: { value: ContributorRole; label: string }[] = [
+  { value: "writer", label: "Writer" },
+  { value: "composer", label: "Composer" },
+  { value: "publisher", label: "Publisher" },
+  { value: "admin", label: "Admin publisher" },
+];
+
 export type PayoutBatch = {
   id: number;
   label: number;
