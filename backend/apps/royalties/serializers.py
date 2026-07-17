@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
-from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyStatement
+from apps.catalog.models import Label
+
+from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement, StatementStatus
 
 
 class RoyaltyStatementSerializer(serializers.ModelSerializer):
@@ -68,8 +70,43 @@ class RoyaltyLineItemSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class RoyaltyRunPayoutSerializer(serializers.ModelSerializer):
+    role_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RoyaltyRunPayout
+        fields = (
+            "id",
+            "run",
+            "track",
+            "isrc",
+            "track_title",
+            "participant_name",
+            "artist",
+            "role",
+            "role_display",
+            "share_percentage",
+            "track_gross",
+            "amount",
+            "unallocated_reason",
+        )
+        read_only_fields = fields
+
+    def get_role_display(self, obj: RoyaltyRunPayout) -> str:
+        if not obj.role:
+            return ""
+        try:
+            from apps.splits.models import SplitRole
+
+            return SplitRole(obj.role).label
+        except ValueError:
+            return obj.role.replace("_", " ").title()
+
+
 class RoyaltyRunSerializer(serializers.ModelSerializer):
     statement_count = serializers.IntegerField(source="statements.count", read_only=True)
+    payout_count = serializers.IntegerField(source="payouts.count", read_only=True)
+    payout_batch_id = serializers.SerializerMethodField()
 
     class Meta:
         model = RoyaltyRun
@@ -80,9 +117,64 @@ class RoyaltyRunSerializer(serializers.ModelSerializer):
             "status",
             "statements",
             "statement_count",
+            "payout_count",
+            "payout_batch_id",
             "total_amount",
             "currency",
+            "consolidation_error",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "total_amount", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "status",
+            "total_amount",
+            "consolidation_error",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_payout_batch_id(self, obj: RoyaltyRun) -> int | None:
+        try:
+            return obj.payout_batch.id
+        except RoyaltyRun.payout_batch.RelatedObjectDoesNotExist:
+            return None
+
+
+class RoyaltyRunCreateSerializer(serializers.ModelSerializer):
+    statements = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=RoyaltyStatement.objects.all(),
+    )
+
+    class Meta:
+        model = RoyaltyRun
+        fields = ("label", "name", "currency", "statements")
+
+    def validate(self, attrs):
+        label: Label = attrs["label"]
+        statements = attrs["statements"]
+        if not statements:
+            raise serializers.ValidationError({"statements": "Select at least one processed statement."})
+
+        currency = attrs.get("currency", "USD")
+        for statement in statements:
+            if statement.label_id != label.id:
+                raise serializers.ValidationError(
+                    {"statements": f"“{statement.filename}” belongs to a different label."}
+                )
+            if statement.status != StatementStatus.PROCESSED:
+                raise serializers.ValidationError(
+                    {"statements": f"“{statement.filename}” is not processed yet."}
+                )
+            if statement.currency != currency:
+                raise serializers.ValidationError(
+                    {"statements": f"“{statement.filename}” uses {statement.currency}; run uses {currency}."}
+                )
+        return attrs
+
+    def create(self, validated_data):
+        statements = validated_data.pop("statements")
+        run = RoyaltyRun.objects.create(**validated_data)
+        run.statements.set(statements)
+        return run

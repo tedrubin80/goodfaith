@@ -47,4 +47,41 @@ export async function apiFetch<T>(
   return response.json() as Promise<T>;
 }
 
+export async function downloadExport(
+  format: "json" | "csv",
+  token: string,
+  labelId?: number,
+): Promise<void> {
+  const params = new URLSearchParams({ export_format: format });
+  if (labelId) params.set("label", String(labelId));
+
+  const response = await fetch(`${API_URL}/api/export/?${params}`, {
+    headers: { Authorization: `Token ${token}` },
+  });
+
+  if (!response.ok) {
+    let message = response.statusText;
+    try {
+      const payload = (await response.json()) as { detail?: string; label?: string[] };
+      if (payload.detail) message = payload.detail;
+      else if (payload.label?.[0]) message = payload.label[0];
+    } catch {
+      // ignore parse errors
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="([^"]+)"/);
+  const filename = match?.[1] ?? `goodfaith-export.${format === "json" ? "json" : "zip"}`;
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export { API_URL };

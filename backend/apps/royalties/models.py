@@ -124,9 +124,48 @@ class RoyaltyRun(TimeStampedModel):
         default=Decimal("0"),
     )
     currency = models.CharField(max_length=3, default="USD")
+    consolidation_error = models.TextField(blank=True)
 
     class Meta:
         ordering = ("-created_at",)
 
     def __str__(self) -> str:
         return self.name
+
+
+class RoyaltyRunPayout(TimeStampedModel):
+    """Per-participant share of consolidated earnings for one track within a run."""
+
+    run = models.ForeignKey(RoyaltyRun, on_delete=models.CASCADE, related_name="payouts")
+    track = models.ForeignKey(
+        Track,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="run_payouts",
+    )
+    isrc = models.CharField(max_length=12, blank=True)
+    track_title = models.CharField(max_length=512, blank=True)
+    participant_name = models.CharField(max_length=255)
+    artist = models.ForeignKey(
+        "catalog.Artist",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="run_payouts",
+    )
+    role = models.CharField(max_length=16, blank=True)
+    share_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0"))
+    track_gross = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
+    amount = models.DecimalField(max_digits=14, decimal_places=4, default=Decimal("0"))
+    unallocated_reason = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="Set when earnings could not be split (missing or draft split sheet).",
+    )
+
+    class Meta:
+        ordering = ("-amount", "participant_name")
+
+    def __str__(self) -> str:
+        return f"{self.participant_name} — {self.amount}"

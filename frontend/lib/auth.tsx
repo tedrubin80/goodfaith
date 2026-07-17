@@ -93,3 +93,19 @@ export function useAuth() {
 export function canAccessRoyalties(role: User["role"]): boolean {
   return role === "manager" || role === "finance" || role === "admin";
 }
+
+export function canAccessSplits(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "artist" || role === "admin";
+}
+
+export function canManageSplits(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "admin";
+}
+
+export function canAccessPayments(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "artist" || role === "admin";
+}
+
+export function canManagePayments(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "admin";
+}

@@ -1,5 +1,5 @@
 from django.db.models import QuerySet
-from rest_framework import viewsets
+from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -7,9 +7,12 @@ from rest_framework.response import Response
 from apps.catalog.views import _user_label_ids
 
 from .models import RoyaltyRun, RoyaltyStatement, StatementStatus
+from .consolidation import ConsolidationError, consolidate_run
 from .permissions import CanAccessRoyalties
 from .serializers import (
     RoyaltyLineItemSerializer,
+    RoyaltyRunCreateSerializer,
+    RoyaltyRunPayoutSerializer,
     RoyaltyRunSerializer,
     RoyaltyStatementSerializer,
     RoyaltyStatementUploadSerializer,
@@ -65,10 +68,46 @@ class RoyaltyStatementViewSet(viewsets.ModelViewSet):
 
 
 class RoyaltyRunViewSet(viewsets.ModelViewSet):
-    serializer_class = RoyaltyRunSerializer
     permission_classes = [CanAccessRoyalties]
 
     def get_queryset(self) -> QuerySet[RoyaltyRun]:
         return RoyaltyRun.objects.filter(
             label_id__in=_user_label_ids(self.request.user)
-        ).prefetch_related("statements")
+        ).prefetch_related("statements", "payouts").select_related("payout_batch")
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return RoyaltyRunCreateSerializer
+        return RoyaltyRunSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        run = serializer.save()
+        try:
+            consolidate_run(run)
+        except ConsolidationError as exc:
+            run.delete()
+            raise serializers.ValidationError({"detail": str(exc)}) from exc
+        output = RoyaltyRunSerializer(run)
+        headers = self.get_success_headers(output.data)
+        return Response(output.data, status=201, headers=headers)
+
+    @action(detail=True, methods=["get"])
+    def payouts(self, request, pk=None):
+        run = self.get_object()
+        payouts = run.payouts.select_related("track", "artist")
+        return Response(RoyaltyRunPayoutSerializer(payouts, many=True).data)
+
+    @action(detail=True, methods=["post"])
+    def consolidate(self, request, pk=None):
+        run = self.get_object()
+        try:
+            consolidate_run(run)
+        except ConsolidationError as exc:
+            run.consolidation_error = str(exc)
+            run.save(update_fields=["consolidation_error", "updated_at"])
+            return Response({"detail": str(exc)}, status=400)
+        run.consolidation_error = ""
+        run.save(update_fields=["consolidation_error", "updated_at"])
+        return Response(RoyaltyRunSerializer(run).data)

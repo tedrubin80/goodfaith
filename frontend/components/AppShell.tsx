@@ -4,28 +4,37 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { canAccessRoyalties, useAuth } from "@/lib/auth";
+import { canAccessPayments, canAccessRoyalties, canAccessSplits, useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
   label: string;
   requiresFinance?: boolean;
+  requiresSplits?: boolean;
+  requiresPayments?: boolean;
 };
 
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Overview" },
   { href: "/catalog", label: "Catalog" },
   { href: "/catalog/artists", label: "Artists" },
+  { href: "/splits", label: "Splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
+  { href: "/payments", label: "Payments", requiresPayments: true },
+  { href: "/export", label: "Export" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const links = NAV.filter(
-    (item) => !item.requiresFinance || (user && canAccessRoyalties(user.role)),
-  );
+  const links = NAV.filter((item) => {
+    if (!user) return false;
+    if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
+    if (item.requiresSplits && !canAccessSplits(user.role)) return false;
+    if (item.requiresPayments && !canAccessPayments(user.role)) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-full flex bg-[var(--color-bg)] text-[var(--color-ink)]">

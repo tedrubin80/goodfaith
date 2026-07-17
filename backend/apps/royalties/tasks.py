@@ -5,7 +5,7 @@ from django.db import transaction
 
 from apps.catalog.models import Track
 
-from .models import RoyaltyLineItem, RoyaltyStatement, StatementStatus
+from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyStatement, StatementStatus
 from .parsers.aliases import aliases_for
 from .parsers.base import StatementParseError, load_dataframe, normalize_rows
 
@@ -75,3 +75,20 @@ def process_statement(statement_id: int) -> None:
         statement.save(
             update_fields=["row_count", "total_amount", "status", "error_message", "updated_at"]
         )
+
+
+@shared_task
+def consolidate_run_task(run_id: int) -> None:
+    from .consolidation import ConsolidationError, consolidate_run
+
+    try:
+        run = RoyaltyRun.objects.prefetch_related("statements").get(pk=run_id)
+    except RoyaltyRun.DoesNotExist:
+        return
+
+    try:
+        consolidate_run(run)
+    except ConsolidationError as exc:
+        run.consolidation_error = str(exc)
+        run.status = RoyaltyRunStatus.DRAFT
+        run.save(update_fields=["consolidation_error", "status", "updated_at"])

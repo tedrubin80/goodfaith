@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -17,6 +18,8 @@ export default function RoyaltiesPage() {
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [creatingRun, setCreatingRun] = useState(false);
+  const [showRunForm, setShowRunForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     label: "",
@@ -25,8 +28,15 @@ export default function RoyaltiesPage() {
     period_end: "",
     file: null as File | null,
   });
+  const [runForm, setRunForm] = useState({
+    name: "",
+    label: "",
+    statements: [] as number[],
+  });
 
   const hasAccess = user && canAccessRoyalties(user.role);
+
+  const processedStatements = statements.filter((s) => s.status === "processed");
 
   useEffect(() => {
     if (!token || !hasAccess) {
@@ -45,6 +55,7 @@ export default function RoyaltiesPage() {
         setLabels(labelData);
         if (labelData.length === 1) {
           setForm((current) => ({ ...current, label: String(labelData[0].id) }));
+          setRunForm((current) => ({ ...current, label: String(labelData[0].id) }));
         }
       })
       .catch((err) =>
@@ -79,6 +90,45 @@ export default function RoyaltiesPage() {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  function toggleRunStatement(id: number) {
+    setRunForm((current) => ({
+      ...current,
+      statements: current.statements.includes(id)
+        ? current.statements.filter((sid) => sid !== id)
+        : [...current.statements, id],
+    }));
+  }
+
+  async function handleCreateRun(event: React.FormEvent) {
+    event.preventDefault();
+    if (!token || !runForm.label || !runForm.name || runForm.statements.length === 0) return;
+
+    setCreatingRun(true);
+    setError(null);
+    try {
+      const created = await apiFetch<RoyaltyRun>(
+        "/api/royalties/runs/",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            label: Number(runForm.label),
+            name: runForm.name,
+            currency: "USD",
+            statements: runForm.statements,
+          }),
+        },
+        token,
+      );
+      setRuns((current) => [created, ...current]);
+      setShowRunForm(false);
+      setRunForm((current) => ({ ...current, name: "", statements: [] }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create royalty run.");
+    } finally {
+      setCreatingRun(false);
     }
   }
 
@@ -204,7 +254,93 @@ export default function RoyaltiesPage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="text-lg font-semibold mb-4">Royalty runs</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Royalty runs</h2>
+          {processedStatements.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowRunForm((value) => !value)}
+              className="text-sm font-medium text-[var(--color-primary-text)] hover:underline"
+            >
+              {showRunForm ? "Cancel" : "New run"}
+            </button>
+          ) : null}
+        </div>
+
+        {showRunForm ? (
+          <form
+            onSubmit={handleCreateRun}
+            className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 space-y-4"
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="run-name" className="block text-sm font-medium mb-1.5">
+                  Run name
+                </label>
+                <input
+                  id="run-name"
+                  required
+                  value={runForm.name}
+                  onChange={(e) => setRunForm({ ...runForm, name: e.target.value })}
+                  placeholder="Q1 2026"
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="run-label" className="block text-sm font-medium mb-1.5">
+                  Label
+                </label>
+                <select
+                  id="run-label"
+                  required
+                  value={runForm.label}
+                  onChange={(e) => setRunForm({ ...runForm, label: e.target.value })}
+                  className="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+                >
+                  <option value="">Select label</option>
+                  {labels.map((label) => (
+                    <option key={label.id} value={label.id}>
+                      {label.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <fieldset>
+              <legend className="text-sm font-medium mb-2">Processed statements</legend>
+              <div className="space-y-2">
+                {processedStatements.map((statement) => (
+                  <label
+                    key={statement.id}
+                    className="flex items-start gap-2 text-sm cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={runForm.statements.includes(statement.id)}
+                      onChange={() => toggleRunStatement(statement.id)}
+                      className="mt-1"
+                    />
+                    <span>
+                      {statement.filename}
+                      <span className="block text-xs text-[var(--color-muted)]">
+                        {statement.distributor_display} ·{" "}
+                        {formatMoney(statement.total_amount, statement.currency)}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <button
+              type="submit"
+              disabled={creatingRun || runForm.statements.length === 0}
+              className="rounded-md bg-[var(--color-primary-fill)] px-4 py-2.5 text-sm font-semibold text-[var(--color-on-fill)] hover:opacity-90 disabled:opacity-60"
+            >
+              {creatingRun ? "Consolidating…" : "Create run"}
+            </button>
+          </form>
+        ) : null}
+
         {loading ? (
           <p className="text-sm text-[var(--color-muted)]">Loading…</p>
         ) : runs.length === 0 ? (
@@ -214,19 +350,21 @@ export default function RoyaltiesPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {runs.map((run) => (
-              <article
+              <Link
                 key={run.id}
-                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+                href={`/royalties/runs/${run.id}`}
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 hover:border-[var(--color-primary-fill)] transition-colors"
               >
                 <h3 className="font-semibold">{run.name}</h3>
                 <p className="mt-2 text-sm text-[var(--color-muted)]">
                   {run.statement_count} statement{run.statement_count === 1 ? "" : "s"} ·{" "}
+                  {run.payout_count} payout{run.payout_count === 1 ? "" : "s"} ·{" "}
                   {formatMoney(run.total_amount, run.currency)}
                 </p>
                 <p className="mt-1 text-xs capitalize text-[var(--color-muted)]">
                   {run.status}
                 </p>
-              </article>
+              </Link>
             ))}
           </div>
         )}
@@ -260,7 +398,14 @@ export default function RoyaltiesPage() {
                     key={statement.id}
                     className="border-t border-[var(--color-border)]"
                   >
-                    <td className="px-4 py-3 font-medium">{statement.filename}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link
+                        href={`/royalties/statements/${statement.id}`}
+                        className="text-[var(--color-primary-text)] hover:underline"
+                      >
+                        {statement.filename}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3">{statement.distributor_display}</td>
                     <td className="px-4 py-3 text-[var(--color-muted)]">
                       {formatDate(statement.period_start)} – {formatDate(statement.period_end)}

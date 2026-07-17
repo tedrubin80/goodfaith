@@ -71,8 +71,54 @@ export type RoyaltyRun = {
   name: string;
   status: "draft" | "ready" | "closed";
   statement_count: number;
+  payout_count: number;
+  payout_batch_id: number | null;
   total_amount: string;
   currency: string;
+  consolidation_error: string;
+  created_at: string;
+};
+
+export type RoyaltyRunPayout = {
+  id: number;
+  run: number;
+  track: number | null;
+  isrc: string;
+  track_title: string;
+  participant_name: string;
+  artist: number | null;
+  role: string;
+  role_display: string;
+  share_percentage: string;
+  track_gross: string;
+  amount: string;
+  unallocated_reason: string;
+};
+
+export type PayoutBatch = {
+  id: number;
+  label: number;
+  run: number;
+  run_name: string;
+  name: string;
+  status: "ready" | "partially_paid" | "paid" | "closed";
+  total_amount: string;
+  currency: string;
+  payout_count: number;
+  pending_count: number;
+  paid_count: number;
+  created_at: string;
+};
+
+export type Payout = {
+  id: number;
+  batch: number;
+  artist: number | null;
+  participant_name: string;
+  amount: string;
+  status: "pending" | "paid" | "cancelled";
+  paid_at: string | null;
+  payment_reference: string;
   created_at: string;
 };
 
@@ -89,3 +135,60 @@ export const DISTRIBUTORS = [
   { value: "the_orchard", label: "The Orchard" },
   { value: "other", label: "Other" },
 ] as const;
+
+export type SplitRole =
+  | "artist"
+  | "producer"
+  | "featured"
+  | "writer"
+  | "label"
+  | "other";
+
+export type SplitEntry = {
+  id?: number;
+  participant_name: string;
+  artist: number | null;
+  role: SplitRole;
+  role_display?: string;
+  percentage: string;
+};
+
+export type SplitSheet = {
+  id: number;
+  track: number;
+  track_title: string;
+  track_isrc: string | null;
+  release_id: number;
+  release_title: string;
+  primary_artist_name: string;
+  status: "draft" | "finalized";
+  notes: string;
+  entries: SplitEntry[];
+  total_percentage: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RoyaltyLineItem = {
+  id: number;
+  statement: number;
+  track: number | null;
+  sale_period: string | null;
+  store: string;
+  country: string;
+  artist_name: string;
+  track_title: string;
+  isrc: string;
+  upc: string;
+  quantity: number;
+  amount: string;
+};
+
+export const SPLIT_ROLES: { value: SplitRole; label: string }[] = [
+  { value: "artist", label: "Artist" },
+  { value: "producer", label: "Producer" },
+  { value: "featured", label: "Featured Artist" },
+  { value: "writer", label: "Writer" },
+  { value: "label", label: "Label" },
+  { value: "other", label: "Other" },
+];

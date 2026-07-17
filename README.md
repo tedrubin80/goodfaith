@@ -48,7 +48,9 @@ This starts:
 | Backend API | http://localhost:8020 | Django, migrations run automatically on start |
 | Auth | http://localhost:8020/api/auth/login/ | Token auth for portal sign-in |
 | Catalog API | http://localhost:8020/api/catalog/ | Releases, artists, tracks |
-| Royalties API | http://localhost:8020/api/royalties/ | Statement upload and royalty runs |
+| Royalties API | http://localhost:8020/api/royalties/ | Statement upload, runs, consolidation |
+| Payments API | http://localhost:8020/api/payments/ | Payout batches and mark-paid |
+| Data export | http://localhost:8020/api/export/ | JSON or CSV (ZIP) download |
 | Health check | http://localhost:8020/api/health/ | Verifies DB + Celery/Redis connectivity |
 | Postgres | localhost:5434 | credentials in `backend/.env.example` |
 | Redis | localhost:6380 | Celery broker |
@@ -67,6 +69,12 @@ Platform/Infrastructure scaffolding is in place: RBAC-ready custom user model (A
 
 **Catalog module (Phase 1):** `Label`, `Artist`, `Release`, and `Track` models with ISRC/UPC identifiers, label-scoped tenancy via `LabelMembership`, DRF API at `/api/catalog/`, and role-based queryset filtering (artists see only their own releases). Portal UI at `/catalog`.
 
-**Royalties module (Phase 1, in progress):** `RoyaltyStatement`, `RoyaltyLineItem`, and `RoyaltyRun` models, multi-distributor statement upload at `/api/royalties/statements/`, Finance/Manager-only RBAC. Portal UI at `/royalties`. Uploads are auto-parsed by a Celery task (CSV/TSV/XLSX, alias-based column mapping) for DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, and RouteNote, normalizing rows and matching tracks by ISRC. Royalty run consolidation is next.
+**Royalties module (Phase 1):** Multi-distributor statement upload and auto-parsing (DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote), royalty run consolidation with split-sheet application, and payout batch issuance. Portal at `/royalties` and `/payments`.
+
+**Splits module (Phase 1):** Track-level split sheets with finalized percentage validation. Portal at `/splits`.
+
+**Payments module (Phase 1, partial):** Issue payout batches from consolidated runs; mark individual payouts paid with optional payment reference. Stripe/ACH automation not yet wired. Portal at `/payments`.
+
+**Data export (Gap 6):** Role-scoped JSON or CSV (ZIP) export at `/api/export/` and portal `/export`.
 
 See `CLAUDE.md` for the planned module build order (Platform/Infrastructure → Catalog → Royalty Accounting → Splits → Payments → Artist Portals → ...).
