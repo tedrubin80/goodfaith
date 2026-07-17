@@ -110,6 +110,58 @@ DISTRIBUTOR_ALIASES: dict[str, dict[str, list[str]]] = {
         "amount": ["Net Earnings", "Earnings", "Payable Amount"],
         "currency": ["Currency"],
     },
+    # TooLost — indie distributor; column names from common label export samples.
+    Distributor.TOOLOST: {
+        "sale_period": ["Reporting Period", "Period", "Sale Month", "Month"],
+        "store": ["Store", "Platform", "DSP"],
+        "country": ["Country", "Territory"],
+        "artist_name": ["Artist Name", "Artist"],
+        "track_title": ["Track Title", "Title", "Song"],
+        "isrc": ["ISRC", "ISRC Code"],
+        "upc": ["UPC", "Album UPC"],
+        "quantity": ["Quantity", "Units", "Streams"],
+        "amount": ["Net Revenue", "Revenue", "Earnings", "Amount"],
+        "currency": ["Currency"],
+    },
+    # FUGA — B2B aggregator; aligns with FUGA royalty report exports.
+    Distributor.FUGA: {
+        "sale_period": ["Reporting Month", "Sale Period", "Period", "Month"],
+        "store": ["Digital Service Provider", "DSP", "Store", "Platform"],
+        "country": ["Territory", "Country"],
+        "artist_name": ["Track Artist", "Artist", "Artist Name"],
+        "track_title": ["Track Title", "Title", "Track Name"],
+        "isrc": ["ISRC", "ISRC Code"],
+        "upc": ["UPC", "UPC Code", "Album UPC"],
+        "quantity": ["Units", "Quantity", "Streams"],
+        "amount": ["Net Amount", "Net Revenue", "Revenue", "Payable"],
+        "currency": ["Currency"],
+    },
+    # The Orchard — Sony enterprise aggregator export headers.
+    Distributor.THE_ORCHARD: {
+        "sale_period": ["Period", "Sale Period", "Reporting Period", "Month"],
+        "store": ["Store", "Digital Store", "DSP", "Retailer"],
+        "country": ["Territory", "Country", "Country of Sale"],
+        "artist_name": ["Artist", "Track Artist", "Artist Name"],
+        "track_title": ["Track Title", "Title", "Song Title"],
+        "isrc": ["ISRC"],
+        "upc": ["UPC", "Product UPC"],
+        "quantity": ["Units", "Quantity", "Stream Count"],
+        "amount": ["Label Share Net Receipts", "Net Receipts", "Amount", "Royalty Amount"],
+        "currency": ["Currency", "Currency Code"],
+    },
+    # Vydia — video/multi-platform; amount columns vary by export type.
+    Distributor.VYDIA: {
+        "sale_period": ["Period", "Reporting Period", "Month"],
+        "store": ["Platform", "Store", "Service"],
+        "country": ["Country", "Territory"],
+        "artist_name": ["Artist", "Artist Name", "Channel"],
+        "track_title": ["Title", "Video Title", "Track Title"],
+        "isrc": ["ISRC"],
+        "upc": ["UPC"],
+        "quantity": ["Views", "Quantity", "Units"],
+        "amount": ["Net Earnings", "Earnings", "Revenue", "Amount"],
+        "currency": ["Currency"],
+    },
 }
 
 

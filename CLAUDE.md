@@ -251,7 +251,7 @@ Upload dev files land in `backend/media/` (gitignored).
 ## Key Technical Decisions & Architecture Notes
 
 ### Must-Have at Launch
-- **Multi-distributor statement parser** — the core moat. Must handle CSV/TSV/XLSX formats from DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, The Orchard. Auto-detect format. Normalize to internal schema. *(Shipped for the Phase 1 six via `apps/royalties/parsers/` — alias-based column mapping per distributor, pandas-backed CSV/TSV/XLSX loading, Celery task triggered on upload. TooLost/FUGA/The Orchard not yet mapped; header aliases will need refinement against real vendor exports.)*
+- **Multi-distributor statement parser** — the core moat. Must handle CSV/TSV/XLSX formats from DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, The Orchard. Auto-detect format. Normalize to internal schema. *(Shipped for all ten listed distributors via `apps/royalties/parsers/` — alias-based column mapping per distributor, pandas-backed CSV/TSV/XLSX loading, Celery task triggered on upload. Header aliases for TooLost/FUGA/Vydia/The Orchard are best-effort and should be validated against real vendor exports.)*
 - **DDEX ingestion** — industry standard for DSP/distributor data exchange
 - **ISRC / UPC / ISWC storage and management** — core identifiers *(ISRC + UPC on catalog models today; ISWC not yet)*
 - **Role-based access control (RBAC)** — Artist / Manager / Finance / A&R / Admin roles from day one *(implemented on catalog + royalties APIs and portal nav)*
@@ -267,7 +267,7 @@ Upload dev files land in `backend/media/` (gitignored).
 - **CAE/IPI** — composer/publisher identifiers
 
 ### Integration Targets (by priority)
-**Phase 1 (statement parsers):** DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote
+**Phase 1 (statement parsers):** DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, Vydia, The Orchard
 **Phase 2 (API integrations):** FUGA, The Orchard, Merlin
 **Phase 2 (payment rails):** Stripe, ACH/wire, international payments
 **Phase 3 (PRO registration):** ASCAP, BMI, SESAC, SOCAN, SoundExchange
