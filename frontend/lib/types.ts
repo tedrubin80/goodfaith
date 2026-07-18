@@ -275,6 +275,27 @@ export type AuditEvent = {
   created_at: string;
 };
 
+export type NotificationKind =
+  | "statement_processed"
+  | "statement_failed"
+  | "payout_ready"
+  | "payout_paid";
+
+export type PortalNotification = {
+  id: number;
+  label: number;
+  kind: NotificationKind;
+  kind_display: string;
+  title: string;
+  body: string;
+  link_path: string;
+  resource_type: string;
+  resource_id: number | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+};
+
 export const DISTRIBUTORS = [
   { value: "distrokid", label: "DistroKid" },
   { value: "tunecore", label: "TuneCore" },

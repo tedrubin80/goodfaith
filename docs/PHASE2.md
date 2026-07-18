@@ -85,12 +85,44 @@ Musical works with writer/publisher shares, ISWC, target PRO (ASCAP/BMI/SESAC/SO
 
 **API:** `/api/publishing/works/` · **Portal:** `/publishing`
 
-## Still deferred (Phase 2+)
+### Statement PDFs
 
-- Stripe Connect + subscription billing *(payment model TBD)*
-- DDEX ingestion / CWR filing automation
-- Publishing depth (society API submission, ACK processing)
-- Listmonk waitlist on marketing site
-- Statement PDFs / notifications
+Downloadable PDF summaries for consolidated royalty runs and payout batches (ReportLab).
+
+| Endpoint | Access |
+|---|---|
+| `GET /api/royalties/runs/{id}/pdf/` | Finance / Manager / Admin |
+| `GET /api/payments/batches/{id}/pdf/` | Finance / Manager / Admin (full batch); Artist (own payouts only) |
+| `GET /api/payments/payouts/{id}/pdf/` | Same RBAC as payout detail — single-participant statement |
+
+**Portal:** Download PDF on royalty run detail; PDF / ACH actions on payments.
+
+### In-app notifications
+
+Portal notifications for statement processing and payout lifecycle. Email delivery is not included (no Listmonk / SMTP wiring yet).
+
+| Event | Recipients |
+|---|---|
+| Statement processed / failed | Manager / Finance / Admin on the label |
+| Payout batch issued | Linked artist portal users on the batch |
+| Payout marked paid | Linked artist portal user |
+
+**API:** `/api/notifications/` · `GET …/unread_count/` · `POST …/{id}/mark_read/` · `POST …/mark_all_read/`
+
+**Portal:** `/notifications` with unread badge in nav.
+
+## Still deferred (Phase 2+ / Phase 3)
+
+These remain blocked on product decisions or external integrations:
+
+- **Stripe Connect + subscription billing** — payment model TBD; do not implement until pricing/disbursement model is decided
+- **DDEX ingestion** — no implementation design beyond research catalog; needs dedicated Phase 3+ spike
+- **Publishing depth** — CWR filing automation, society API submission, ACK processing
+- **Contracts depth** — obligation/AI extraction, e-sign
+- **Email notifications / Listmonk waitlist** — deferred until email infrastructure and pricing are finalized (`PRODUCT.md`)
 
 See `CLAUDE.md` for the full module roadmap.
+
+## Phase 2 completion status
+
+**Unblocked Phase 2 scope is complete** (security, metadata, scaffolds, statement PDFs, in-app notifications). Remaining items above are intentionally deferred to Phase 2+/3.

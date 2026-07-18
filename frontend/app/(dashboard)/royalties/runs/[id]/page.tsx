@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/PageHeader";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, downloadRoyaltyRunPdf } from "@/lib/api";
 import { canAccessRoyalties, canManagePayments, useAuth } from "@/lib/auth";
 import { formatMoney, titleCase } from "@/lib/format";
 import type { PayoutBatch, RoyaltyRun, RoyaltyRunPayout } from "@/lib/types";
@@ -18,6 +18,7 @@ export default function RunDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [issuing, setIssuing] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const hasAccess = user && canAccessRoyalties(user.role);
   const canIssue = user && canManagePayments(user.role);
@@ -71,6 +72,19 @@ export default function RunDetailPage() {
     }
   }
 
+  async function downloadPdf() {
+    if (!token || !run) return;
+    setDownloadingPdf(true);
+    setError(null);
+    try {
+      await downloadRoyaltyRunPdf(run.id, token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PDF download failed.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
   const participantTotals = useMemo(() => {
     const totals = new Map<string, number>();
     for (const payout of payouts) {
@@ -119,6 +133,16 @@ export default function RunDetailPage() {
       <PageHeader
         title={run.name}
         description={`${run.statement_count} statement${run.statement_count === 1 ? "" : "s"} consolidated · ${titleCase(run.status)}`}
+        action={
+          <button
+            type="button"
+            disabled={downloadingPdf}
+            onClick={downloadPdf}
+            className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface-2)] disabled:opacity-50"
+          >
+            {downloadingPdf ? "Downloading…" : "Download PDF"}
+          </button>
+        }
       />
 
       {canIssue && run.status === "ready" && !run.payout_batch_id && run.payout_count > 0 ? (

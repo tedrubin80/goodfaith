@@ -106,10 +106,50 @@ export async function downloadAchExport(batchId: number, token: string): Promise
     throw new ApiError("ACH export failed.", response.status);
   }
 
+  await downloadBlobResponse(response, `ach-batch-${batchId}.csv`);
+}
+
+export async function downloadRoyaltyRunPdf(runId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/royalties/runs/${runId}/pdf/`, {
+    headers: { Authorization: `Token ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new ApiError("PDF download failed.", response.status);
+  }
+
+  await downloadBlobResponse(response, `royalty-run-${runId}.pdf`);
+}
+
+export async function downloadPayoutBatchPdf(batchId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/payments/batches/${batchId}/pdf/`, {
+    headers: { Authorization: `Token ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new ApiError("PDF download failed.", response.status);
+  }
+
+  await downloadBlobResponse(response, `payout-batch-${batchId}.pdf`);
+}
+
+export async function downloadPayoutPdf(payoutId: number, token: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/payments/payouts/${payoutId}/pdf/`, {
+    headers: { Authorization: `Token ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new ApiError("PDF download failed.", response.status);
+  }
+
+  await downloadBlobResponse(response, `payout-${payoutId}.pdf`);
+}
+
+async function downloadBlobResponse(response: Response, fallbackName: string): Promise<void> {
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const match = disposition.match(/filename="([^"]+)"/);
-  const filename = match?.[1] ?? `ach-batch-${batchId}.csv`;
+  const filename = match?.[1] ?? fallbackName;
 
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");

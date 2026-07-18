@@ -1,4 +1,5 @@
 from django.db.models import QuerySet
+from django.http import HttpResponse
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
@@ -16,6 +17,7 @@ from .models import RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement, StatementSta
 from .consolidation import ConsolidationError, consolidate_run
 from .permissions import CanAccessRoyalties
 from apps.accounts.permissions import Mandatory2FAEnforced
+from .pdf_export import royalty_run_pdf, royalty_run_pdf_filename
 from .serializers import (
     ArtistEarningsSerializer,
     RoyaltyLineItemSerializer,
@@ -153,6 +155,14 @@ class RoyaltyRunViewSet(viewsets.ModelViewSet):
         run = self.get_object()
         payouts = run.payouts.select_related("track", "artist")
         return Response(RoyaltyRunPayoutSerializer(payouts, many=True).data)
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        run = self.get_object()
+        content = royalty_run_pdf(run)
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{royalty_run_pdf_filename(run)}"'
+        return response
 
     @action(detail=True, methods=["post"])
     def consolidate(self, request, pk=None):

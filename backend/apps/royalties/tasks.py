@@ -7,8 +7,9 @@ from apps.catalog.models import Track
 
 from apps.audit.models import AuditAction
 from apps.audit.services import log_audit_event
+from apps.notifications.services import notify_statement_failed, notify_statement_processed
 
-from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyStatement, StatementStatus
+from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyRunStatus, RoyaltyStatement, StatementStatus
 from .parsers.aliases import aliases_for
 from .parsers.base import StatementParseError, load_dataframe, normalize_rows
 
@@ -40,6 +41,7 @@ def process_statement(statement_id: int) -> None:
             summary=f"Parse failed for {statement.filename}",
             metadata={"error": str(exc)},
         )
+        notify_statement_failed(statement)
         return
     except Exception as exc:  # noqa: BLE001 — surface any parse failure on the statement
         statement.status = StatementStatus.FAILED
@@ -53,6 +55,7 @@ def process_statement(statement_id: int) -> None:
             summary=f"Parse failed for {statement.filename}",
             metadata={"error": str(exc)},
         )
+        notify_statement_failed(statement)
         return
 
     isrcs = {row.isrc for row in rows if row.isrc}
@@ -107,6 +110,7 @@ def process_statement(statement_id: int) -> None:
                 "skipped_rows": skipped,
             },
         )
+    notify_statement_processed(statement)
 
 
 @shared_task

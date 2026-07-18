@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
+import { apiFetch } from "@/lib/api";
 import { canAccessAuditLog, canAccessContracts, canAccessPayments, canAccessPublishing, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
 
 type NavItem = {
@@ -31,6 +32,7 @@ const NAV: NavItem[] = [
   { href: "/splits", label: "Splits", artistLabel: "My splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
   { href: "/payments", label: "Payments", artistLabel: "My payouts", requiresPayments: true },
+  { href: "/notifications", label: "Notifications" },
   { href: "/activity", label: "Activity", requiresActivity: true },
   { href: "/export", label: "Export", artistLabel: "My data" },
   { href: "/settings/security", label: "Security" },
@@ -38,7 +40,28 @@ const NAV: NavItem[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshUnread = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await apiFetch<{ count: number }>(
+        "/api/notifications/unread_count/",
+        {},
+        token,
+      );
+      setUnreadCount(data.count);
+    } catch {
+      // ignore badge fetch errors
+    }
+  }, [token]);
+
+  useEffect(() => {
+    refreshUnread();
+    const id = window.setInterval(refreshUnread, 60_000);
+    return () => window.clearInterval(id);
+  }, [refreshUnread, pathname]);
 
   const links = NAV.filter((item) => {
     if (!user) return false;
@@ -74,18 +97,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             const active =
               pathname === item.href ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const showBadge = item.href === "/notifications" && unreadCount > 0;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={[
-                  "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "rounded-md px-3 py-2 text-sm font-medium transition-colors flex items-center justify-between gap-2",
                   active
                     ? "bg-[var(--color-surface-2)] text-[var(--color-ink)]"
                     : "text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-2)]",
                 ].join(" ")}
               >
-                {item.label}
+                <span>{item.label}</span>
+                {showBadge ? (
+                  <span className="rounded-md bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-white tabular-nums">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -128,6 +157,9 @@ export function AppShell({ children }: { children: ReactNode }) {
               className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium bg-[var(--color-surface-2)] text-[var(--color-muted)]"
             >
               {item.label}
+              {item.href === "/notifications" && unreadCount > 0
+                ? ` (${unreadCount > 99 ? "99+" : unreadCount})`
+                : ""}
             </Link>
           ))}
         </nav>

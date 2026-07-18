@@ -162,7 +162,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 
 ## Implementation Status (July 17, 2026)
 
-**Phase 1 is complete.** Phase 2 platform security (2FA, ISWC, S3 storage) shipped July 2026 — see [`docs/PHASE2.md`](docs/PHASE2.md). Payment rails (Stripe Connect) deferred pending payment model review.
+**Phase 1 is complete.** Phase 2 unblocked scope is complete (July 2026) — see [`docs/PHASE2.md`](docs/PHASE2.md). Stripe Connect, DDEX, Listmonk, and publishing/contracts depth remain deferred.
 
 See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 
@@ -177,24 +177,26 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 | **Catalog (Module 1 — Phase 1)** | `Label`, `LabelMembership`, `Artist`, `Release`, `Track` models. ISRC + **ISWC** on tracks, UPC on releases. API at `/api/catalog/`. Portal CRUD at `/catalog`, `/catalog/artists`, release detail (tracks). Manager/Finance/A&R/Admin write; Artists read-own. |
 | **Royalties (Module 4 — Phase 1)** | `RoyaltyStatement`, `RoyaltyLineItem`, `RoyaltyRun`, `RoyaltyRunPayout`. **10-distributor parser** (Gap 1): DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, Vydia, The Orchard. Run consolidation applies finalized split sheets. Portal: upload, statement detail, run create, payout breakdown, issue payouts. |
 | **Splits (Module 7 — Phase 1)** | `SplitSheet` (one per track) + `SplitEntry`. API at `/api/splits/sheets/`. Finalized sheets must total 100%. Applied during royalty run consolidation. Portal at `/splits`. |
-| **Payments (Module 5 — Phase 1)** | `PayoutBatch` + `Payout`. Issue batch from run, mark-paid, **ACH CSV export** (`/api/payments/batches/{id}/ach_export/`). Stripe Connect deferred to Phase 2. Portal at `/payments`. |
+| **Payments (Module 5 — Phase 1)** | `PayoutBatch` + `Payout`. Issue batch from run, mark-paid, **ACH CSV export**, **PDF statements**. Stripe Connect deferred. Portal at `/payments`. |
 | **Data export (Gap 6 — Phase 1)** | `GET /api/export/?export_format=json|csv` — role-scoped export. Finance/Manager/Admin get full label data + audit log; Artist gets own data; A&R gets catalog only. Portal at `/export`. |
 | **Audit trail** | `AuditEvent` in `apps/audit/` — immutable log of uploads, parses, consolidation, split finalization, payout issuance, mark-paid. Portal at `/activity`. |
 | **Artist portal (Module 12 — Phase 1 basic)** | Role-aware dashboard (`ArtistDashboard`), scoped nav labels ("My releases", "My payouts"), simplified artist payments view. |
-| **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/splits`, `/royalties`, `/payments`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
+| **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/splits`, `/royalties`, `/payments`, `/notifications`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
 | **Marketing site** | Astro static site at `marketing/`. Live at **usegoodfaith.com**. Waitlist deferred (Listmonk); CTAs → pricing and `hello@usegoodfaith.com`. |
 
-### Phase 2 (in progress)
+### Phase 2 (complete — deferred items remain)
 
-| Shipped | Deferred |
+| Shipped | Deferred (Phase 2+/3) |
 |---|---|
 | **2FA** (TOTP + backup codes, mandatory for Manager/Finance/Admin) | Stripe Connect + subscription billing *(payment model TBD)* |
 | **ISWC** on tracks | DDEX ingestion |
-| **S3/R2** object storage (optional env config) | Publishing admin depth |
+| **S3/R2** object storage (optional env config) | Publishing admin depth (CWR, society APIs) |
 | **Contracts** scaffold (`/api/contracts/`, `/contracts`) | Obligation/AI extraction, e-sign |
 | **Publishing** scaffold (`/api/publishing/works/`, `/publishing`) | CWR filing, society APIs |
-| **Artist earnings** (`/earnings`) + **portal invites** | Statement PDFs, notifications |
+| **Artist earnings** (`/earnings`) + **portal invites** | Email notifications |
 | Password change in Security settings | Listmonk waitlist |
+| **Statement PDFs** (run + batch + payout) | |
+| **In-app notifications** (`/notifications`) | |
 
 ### Phase 1 end-to-end flow
 
@@ -208,8 +210,8 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 
 ```
 ✅ Phase 1 — Platform, catalog, royalties (10 distributors), splits, payments, export, audit, artist portal
-🟡 Phase 2 — 2FA, ISWC, S3, contracts, publishing scaffold, artist earnings/invites; Stripe/DDEX deferred
-⬜ Phase 3+ — A&R, sync, analytics, marketing, commerce
+✅ Phase 2 — 2FA, ISWC, S3, contracts, publishing scaffold, artist earnings/invites, statement PDFs, in-app notifications
+⬜ Phase 2+/3 — Stripe Connect, DDEX, CWR/society APIs, email/Listmonk, A&R, sync, analytics
 ```
 
 ### Repo layout (code)
@@ -223,6 +225,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 | `backend/apps/splits/` | Track-level split sheets and entries |
 | `backend/apps/payments/` | Payout batches, mark-paid, ACH CSV export |
 | `backend/apps/publishing/` | Musical works, writer shares, PRO registration status |
+| `backend/apps/notifications/` | In-app notifications (statement + payout events) |
 | `frontend/` | Next.js portal (port 3020 in dev) |
 | `marketing/` | Astro marketing site; build output in `marketing/dist/` |
 | `PRODUCT.md` | Marketing-site brand brief |
@@ -250,6 +253,11 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 | `/api/payments/payouts/` | List payouts; Artist read-own |
 | `POST /api/payments/payouts/{id}/mark_paid/` | Finance, Manager, Admin — record payment |
 | `GET /api/payments/batches/{id}/ach_export/` | Finance, Manager, Admin — ACH CSV for pending payouts |
+| `GET /api/royalties/runs/{id}/pdf/` | Finance, Manager, Admin — royalty run PDF statement |
+| `GET /api/payments/batches/{id}/pdf/` | Finance/Manager/Admin full; Artist own lines — payout PDF |
+| `GET /api/payments/payouts/{id}/pdf/` | Same as payout access — single-participant PDF |
+| `GET /api/notifications/` | Authenticated — own notifications |
+| `GET /api/notifications/unread_count/` | Authenticated — unread badge count |
 | `GET /api/export/?export_format=json\|csv` | Label members — role-scoped data export |
 | `/api/audit/events/` | Finance, Manager, Admin — immutable activity log |
 
@@ -411,6 +419,6 @@ All findings are grounded in fetched, first-party pages. Key sources:
 5. **Pricing constraint:** Never propose a percentage-of-earnings model. Flat fee only.
 6. **Trust is the #1 brand value.** Data portability, transparent pricing, and role-based access are non-negotiable.
 7. When writing product copy, pull from the verbatim Reddit quotes in the Community Intelligence section — they are the exact language the market uses.
-8. **Module build order:** Phase 1 complete. Phase 2 in progress: 2FA, contracts scaffold, artist portal depth. Stripe Connect deferred. See `docs/PHASE2.md`.
+8. **Module build order:** Phase 1 and unblocked Phase 2 complete. Deferred Phase 2+/3: Stripe Connect, DDEX, publishing/contracts depth, email/Listmonk. See `docs/PHASE2.md`.
 9. **Marketing vs portal:** `marketing/` is the public pre-launch site (`PRODUCT.md` governs copy/design). `frontend/` is the authenticated label portal. Do not add a waitlist form until Listmonk is configured.
 10. **Financial data access:** A&R must never see royalty statements, runs, splits, or payout data. Artists see **only their own** splits and payouts — never label-wide financial data. Enforce in API queryset filters and portal nav, not just UI hiding.

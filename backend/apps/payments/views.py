@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,7 +19,14 @@ from .serializers import (
     PayoutSerializer,
 )
 from .ach_export import ach_export_filename, payout_batch_ach_csv
+from .pdf_export import (
+    payout_batch_pdf,
+    payout_batch_pdf_filename,
+    payout_pdf,
+    payout_pdf_filename,
+)
 from .services import PayoutGenerationError, generate_payout_batch
+from apps.notifications.services import notify_payout_batch_issued, notify_payout_paid
 
 
 class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
@@ -60,6 +67,7 @@ class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
                 "payout_count": batch.payouts.count(),
             },
         )
+        notify_payout_batch_issued(batch)
         return Response(PayoutBatchSerializer(batch).data, status=201)
 
     @action(detail=True, methods=["get"])
@@ -68,6 +76,22 @@ class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
         content = payout_batch_ach_csv(batch)
         response = HttpResponse(content, content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="{ach_export_filename(batch)}"'
+        return response
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        batch = self.get_object()
+        user = request.user
+        payouts = batch.payouts.select_related("artist")
+        scoped = False
+        if user.role == Role.ARTIST and hasattr(user, "artist_profile"):
+            payouts = payouts.filter(artist=user.artist_profile)
+            scoped = True
+        content = payout_batch_pdf(batch, payouts=payouts)
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{payout_batch_pdf_filename(batch, scoped=scoped)}"'
+        )
         return response
 
     @action(detail=True, methods=["get"])
@@ -116,4 +140,13 @@ class PayoutViewSet(viewsets.ReadOnlyModelViewSet):
                 "payment_reference": payout.payment_reference,
             },
         )
+        notify_payout_paid(payout)
         return Response(PayoutSerializer(payout).data)
+
+    @action(detail=True, methods=["get"])
+    def pdf(self, request, pk=None):
+        payout = self.get_object()
+        content = payout_pdf(payout)
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{payout_pdf_filename(payout)}"'
+        return response

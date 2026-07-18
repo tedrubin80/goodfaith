@@ -6,7 +6,7 @@ import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
-import { apiFetch, downloadAchExport } from "@/lib/api";
+import { apiFetch, downloadAchExport, downloadPayoutBatchPdf, downloadPayoutPdf } from "@/lib/api";
 import { canAccessPayments, canManagePayments, isArtistRole, useAuth } from "@/lib/auth";
 import { formatDate, formatMoney, titleCase } from "@/lib/format";
 import type { Payout, PayoutBatch } from "@/lib/types";
@@ -21,6 +21,8 @@ export default function PaymentsPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [markingId, setMarkingId] = useState<number | null>(null);
   const [exportingBatchId, setExportingBatchId] = useState<number | null>(null);
+  const [pdfBatchId, setPdfBatchId] = useState<number | null>(null);
+  const [pdfPayoutId, setPdfPayoutId] = useState<number | null>(null);
   const [references, setReferences] = useState<Record<number, string>>({});
 
   const hasAccess = user && canAccessPayments(user.role);
@@ -83,6 +85,32 @@ export default function PaymentsPage() {
       setError(err instanceof Error ? err.message : "ACH export failed.");
     } finally {
       setExportingBatchId(null);
+    }
+  }
+
+  async function exportBatchPdf(batchId: number) {
+    if (!token) return;
+    setPdfBatchId(batchId);
+    setError(null);
+    try {
+      await downloadPayoutBatchPdf(batchId, token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PDF download failed.");
+    } finally {
+      setPdfBatchId(null);
+    }
+  }
+
+  async function exportPayoutPdf(payoutId: number) {
+    if (!token) return;
+    setPdfPayoutId(payoutId);
+    setError(null);
+    try {
+      await downloadPayoutPdf(payoutId, token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "PDF download failed.");
+    } finally {
+      setPdfPayoutId(null);
     }
   }
 
@@ -158,6 +186,7 @@ export default function PaymentsPage() {
                   <th className="px-4 py-3 font-medium">Issued</th>
                   <th className="px-4 py-3 font-medium">Paid</th>
                   <th className="px-4 py-3 font-medium">Reference</th>
+                  <th className="px-4 py-3 font-medium text-right">Statement</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,6 +206,16 @@ export default function PaymentsPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--color-muted)]">
                       {payout.payment_reference || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        disabled={pdfPayoutId === payout.id}
+                        onClick={() => exportPayoutPdf(payout.id)}
+                        className="text-xs font-medium text-[var(--color-primary-text)] hover:underline disabled:opacity-50"
+                      >
+                        {pdfPayoutId === payout.id ? "…" : "PDF"}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -215,7 +254,7 @@ export default function PaymentsPage() {
                 <th className="px-4 py-3 font-medium text-right">Total</th>
                 <th className="px-4 py-3 font-medium text-right">Paid</th>
                 <th className="px-4 py-3 font-medium">Created</th>
-                {canManage ? <th className="px-4 py-3 font-medium text-right">Actions</th> : null}
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -253,25 +292,38 @@ export default function PaymentsPage() {
                       <td className="px-4 py-3 text-[var(--color-muted)]">
                         {formatDate(batch.created_at)}
                       </td>
-                      {canManage ? (
-                        <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-3">
                           <button
                             type="button"
-                            disabled={exportingBatchId === batch.id}
+                            disabled={pdfBatchId === batch.id}
                             onClick={(event) => {
                               event.stopPropagation();
-                              exportAch(batch.id);
+                              exportBatchPdf(batch.id);
                             }}
                             className="text-xs font-medium text-[var(--color-primary-text)] hover:underline disabled:opacity-50"
                           >
-                            {exportingBatchId === batch.id ? "Exporting…" : "ACH CSV"}
+                            {pdfBatchId === batch.id ? "…" : "PDF"}
                           </button>
-                        </td>
-                      ) : null}
+                          {canManage ? (
+                            <button
+                              type="button"
+                              disabled={exportingBatchId === batch.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                exportAch(batch.id);
+                              }}
+                              className="text-xs font-medium text-[var(--color-primary-text)] hover:underline disabled:opacity-50"
+                            >
+                              {exportingBatchId === batch.id ? "Exporting…" : "ACH CSV"}
+                            </button>
+                          ) : null}
+                        </div>
+                      </td>
                     </tr>
                     {expanded ? (
                       <tr className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
-                        <td colSpan={canManage ? 8 : 7} className="px-4 py-4">
+                        <td colSpan={8} className="px-4 py-4">
                           {payouts.length === 0 ? (
                             <p className="text-sm text-[var(--color-muted)]">Loading payouts…</p>
                           ) : (
