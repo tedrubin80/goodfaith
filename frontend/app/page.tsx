@@ -1,6 +1,11 @@
-import { redirect } from "next/navigation";
+import { InstallHome } from "@/components/InstallHome";
+import { AuthProvider } from "@/lib/auth";
 
-/** Portal entry — marketing lives on DevWeb / Vercel marketing project. */
+/** Portal entry — branded home with sign-in. Install/health also at /install. */
 export default function Home() {
-  redirect("/login");
+  return (
+    <AuthProvider>
+      <InstallHome />
+    </AuthProvider>
+  );
 }
