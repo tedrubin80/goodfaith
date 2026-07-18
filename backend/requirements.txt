@@ -11,3 +11,5 @@ qrcode[pil]==8.2
 django-storages==1.14.6
 boto3==1.38.36
 reportlab==4.4.3
+gunicorn==23.0.0
+

@@ -72,3 +72,40 @@ class Contract(TimeStampedModel):
 
     def __str__(self) -> str:
         return self.title
+
+
+class ObligationStatus(models.TextChoices):
+    OPEN = "open", "Open"
+    DONE = "done", "Done"
+    WAIVED = "waived", "Waived"
+
+
+class ContractObligation(TimeStampedModel):
+    """Tracked obligation on a contract (options, delivery dates, reversion) — no e-sign."""
+
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name="obligations",
+    )
+    title = models.CharField(max_length=512)
+    status = models.CharField(
+        max_length=16,
+        choices=ObligationStatus.choices,
+        default=ObligationStatus.OPEN,
+    )
+    due_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contract_obligations_created",
+    )
+
+    class Meta:
+        ordering = ("due_date", "title")
+
+    def __str__(self) -> str:
+        return self.title

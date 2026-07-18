@@ -1,0 +1,17 @@
+# Monorepo entrypoint for Railway (API).
+# Preferred: set service Root Directory to `backend/` and use backend/railway.toml.
+#
+# If the service Root Directory is the repo root, this file builds the backend
+# Dockerfile with the correct context.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+watchPatterns = ["backend/**"]
+
+[deploy]
+startCommand = "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 120"
+healthcheckPath = "/api/health/"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,10 +11,13 @@ import { formatDate } from "@/lib/format";
 import {
   CONTRACT_STATUSES,
   CONTRACT_TYPES,
+  OBLIGATION_STATUSES,
   type Artist,
   type Contract,
+  type ContractObligation,
   type ContractStatus,
   type ContractType,
+  type ObligationStatus,
 } from "@/lib/types";
 
 const inputClassName =
@@ -31,6 +34,14 @@ export default function ContractsPage() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [obligationForm, setObligationForm] = useState({
+    title: "",
+    status: "open" as ObligationStatus,
+    due_date: "",
+    notes: "",
+  });
+  const [savingObligation, setSavingObligation] = useState(false);
   const [form, setForm] = useState({
     label: "",
     artist: "",
@@ -160,6 +171,44 @@ export default function ContractsPage() {
       setError(err instanceof ApiError ? err.message : "Could not save contract.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleAddObligation(contractId: number) {
+    if (!token || !canManage || !obligationForm.title.trim()) return;
+    setSavingObligation(true);
+    setError(null);
+    try {
+      const saved = await apiFetch<ContractObligation>(
+        "/api/contracts/obligations/",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            contract: contractId,
+            title: obligationForm.title.trim(),
+            status: obligationForm.status,
+            due_date: obligationForm.due_date || null,
+            notes: obligationForm.notes.trim(),
+          }),
+        },
+        token,
+      );
+      setContracts((current) =>
+        current.map((c) => {
+          if (c.id !== contractId) return c;
+          const obligations = [...(c.obligations ?? []), saved];
+          return {
+            ...c,
+            obligations,
+            open_obligation_count: obligations.filter((o) => o.status === "open").length,
+          };
+        }),
+      );
+      setObligationForm({ title: "", status: "open", due_date: "", notes: "" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add obligation.");
+    } finally {
+      setSavingObligation(false);
     }
   }
 
@@ -366,42 +415,149 @@ export default function ContractsPage() {
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Artist</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Obligations</th>
                 <th className="px-4 py-3 font-medium">Term</th>
                 <th className="px-4 py-3 font-medium">File</th>
-                {canManage ? <th className="px-4 py-3 font-medium text-right">Actions</th> : null}
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {contracts.map((contract) => (
-                <tr key={contract.id} className="border-t border-[var(--color-border)]">
-                  <td className="px-4 py-3 font-medium">{contract.title}</td>
-                  <td className="px-4 py-3">{contract.contract_type_display}</td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">
-                    {contract.artist_name || "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={contract.status} />
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">
-                    {contract.start_date ? formatDate(contract.start_date) : "—"}
-                    {contract.end_date ? ` → ${formatDate(contract.end_date)}` : ""}
-                  </td>
-                  <td className="px-4 py-3 text-[var(--color-muted)]">
-                    {contract.filename || "—"}
-                  </td>
-                  {canManage ? (
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(contract)}
-                        className="text-xs font-medium text-[var(--color-primary-text)] hover:underline"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
+              {contracts.map((contract) => {
+                const obligations = contract.obligations ?? [];
+                const openCount = contract.open_obligation_count ?? 0;
+                const expanded = expandedId === contract.id;
+                return (
+                  <Fragment key={contract.id}>
+                    <tr className="border-t border-[var(--color-border)]">
+                      <td className="px-4 py-3 font-medium">{contract.title}</td>
+                      <td className="px-4 py-3">{contract.contract_type_display}</td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {contract.artist_name || "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={contract.status} />
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {openCount > 0 ? `${openCount} open` : obligations.length || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {contract.start_date ? formatDate(contract.start_date) : "—"}
+                        {contract.end_date ? ` → ${formatDate(contract.end_date)}` : ""}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-muted)]">
+                        {contract.filename || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-3">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(expanded ? null : contract.id)}
+                          className="text-xs font-medium text-[var(--color-primary-text)] hover:underline"
+                        >
+                          {expanded ? "Hide" : "Obligations"}
+                        </button>
+                        {canManage ? (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(contract)}
+                            className="text-xs font-medium text-[var(--color-primary-text)] hover:underline"
+                          >
+                            Edit
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                    {expanded ? (
+                      <tr className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+                        <td colSpan={8} className="px-4 py-4">
+                          {obligations.length === 0 ? (
+                            <p className="text-sm text-[var(--color-muted)] mb-3">
+                              No obligations tracked yet.
+                            </p>
+                          ) : (
+                            <ul className="space-y-2 mb-4">
+                              {obligations.map((item) => (
+                                <li
+                                  key={item.id}
+                                  className="flex flex-wrap items-center gap-3 text-sm"
+                                >
+                                  <StatusBadge
+                                    label={item.status_display}
+                                    status={item.status}
+                                  />
+                                  <span className="font-medium">{item.title}</span>
+                                  <span className="text-[var(--color-muted)]">
+                                    {item.due_date
+                                      ? `Due ${formatDate(item.due_date)}`
+                                      : "No due date"}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {canManage ? (
+                            <div className="grid gap-3 sm:grid-cols-4 items-end">
+                              <label className={labelClassName}>
+                                Obligation
+                                <input
+                                  value={obligationForm.title}
+                                  onChange={(e) =>
+                                    setObligationForm((c) => ({
+                                      ...c,
+                                      title: e.target.value,
+                                    }))
+                                  }
+                                  className={inputClassName}
+                                />
+                              </label>
+                              <label className={labelClassName}>
+                                Status
+                                <select
+                                  value={obligationForm.status}
+                                  onChange={(e) =>
+                                    setObligationForm((c) => ({
+                                      ...c,
+                                      status: e.target.value as ObligationStatus,
+                                    }))
+                                  }
+                                  className={inputClassName}
+                                >
+                                  {OBLIGATION_STATUSES.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                      {option.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className={labelClassName}>
+                                Due date
+                                <input
+                                  type="date"
+                                  value={obligationForm.due_date}
+                                  onChange={(e) =>
+                                    setObligationForm((c) => ({
+                                      ...c,
+                                      due_date: e.target.value,
+                                    }))
+                                  }
+                                  className={inputClassName}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                disabled={savingObligation || !obligationForm.title.trim()}
+                                onClick={() => void handleAddObligation(contract.id)}
+                                className="rounded-md bg-[var(--color-primary-fill)] px-4 py-2 text-sm font-semibold text-[var(--color-on-fill)] disabled:opacity-60"
+                              >
+                                {savingObligation ? "Adding…" : "Add obligation"}
+                              </button>
+                            </div>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

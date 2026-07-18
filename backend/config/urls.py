@@ -19,6 +19,10 @@ urlpatterns = [
     path("api/analytics/", include("apps.analytics.urls")),
     path("api/sync/", include("apps.sync.urls")),
     path("api/marketing/", include("apps.marketing.urls")),
+    path("api/erp/", include("apps.erp.urls")),
+    path("api/workflow/", include("apps.workflow.urls")),
+    path("api/distribution/", include("apps.distribution.urls")),
+    path("api/dam/", include("apps.dam.urls")),
 ]
 
 if settings.DEBUG:

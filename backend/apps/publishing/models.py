@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from apps.core.models import TimeStampedModel
@@ -113,3 +114,43 @@ class WorkShare(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.contributor_name} — {self.percentage}%"
+
+
+class RegistrationEvent(TimeStampedModel):
+    """Manual PRO registration history for a musical work (no society API yet)."""
+
+    work = models.ForeignKey(
+        MusicalWork,
+        on_delete=models.CASCADE,
+        related_name="registration_events",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=RegistrationStatus.choices,
+    )
+    pro_society = models.CharField(
+        max_length=16,
+        choices=ProSociety.choices,
+        blank=True,
+        default="",
+    )
+    reference = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="Society confirmation / work ID when available.",
+    )
+    notes = models.TextField(blank=True)
+    occurred_on = models.DateField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="registration_events_created",
+    )
+
+    class Meta:
+        ordering = ("-occurred_on", "-created_at")
+
+    def __str__(self) -> str:
+        return f"{self.work} → {self.get_status_display()}"

@@ -5,7 +5,25 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { apiFetch } from "@/lib/api";
-import { canAccessARPipeline, canAccessAnalytics, canAccessAuditLog, canAccessContracts, canAccessMarketing, canAccessPayments, canAccessPublishing, canAccessRoyalties, canAccessSplits, canAccessSync, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
+import {
+  canAccessARPipeline,
+  canAccessAnalytics,
+  canAccessAuditLog,
+  canAccessContracts,
+  canAccessDAM,
+  canAccessDistribution,
+  canAccessERP,
+  canAccessMarketing,
+  canAccessPayments,
+  canAccessPublishing,
+  canAccessRoyalties,
+  canAccessSplits,
+  canAccessSync,
+  canAccessWorkflow,
+  canViewRoster,
+  isArtistRole,
+  useAuth,
+} from "@/lib/auth";
 
 type NavItem = {
   href: string;
@@ -22,6 +40,10 @@ type NavItem = {
   requiresAnalytics?: boolean;
   requiresSync?: boolean;
   requiresMarketing?: boolean;
+  requiresERP?: boolean;
+  requiresWorkflow?: boolean;
+  requiresDistribution?: boolean;
+  requiresDAM?: boolean;
   requiresEarnings?: boolean;
   artistOnly?: boolean;
 };
@@ -31,12 +53,16 @@ const NAV: NavItem[] = [
   { href: "/catalog", label: "Catalog", artistLabel: "My releases" },
   { href: "/catalog/artists", label: "Artists", requiresRoster: true },
   { href: "/pipeline", label: "A&R Pipeline", requiresARPipeline: true },
+  { href: "/workflow", label: "Workflow", artistLabel: "My tasks", requiresWorkflow: true },
+  { href: "/distribution", label: "Distribution", artistLabel: "My deliveries", requiresDistribution: true },
+  { href: "/assets", label: "Assets", artistLabel: "My assets", requiresDAM: true },
   { href: "/sync", label: "Sync", artistLabel: "My sync", requiresSync: true },
   { href: "/marketing", label: "Marketing", artistLabel: "My campaigns", requiresMarketing: true },
   { href: "/analytics", label: "Analytics", artistLabel: "My analytics", requiresAnalytics: true },
   { href: "/contracts", label: "Contracts", artistLabel: "My contracts", requiresContracts: true },
   { href: "/publishing", label: "Publishing", artistLabel: "My works", requiresPublishing: true },
   { href: "/earnings", label: "My earnings", requiresEarnings: true, artistOnly: true },
+  { href: "/finance", label: "Finance", artistLabel: "My finances", requiresERP: true },
   { href: "/splits", label: "Splits", artistLabel: "My splits", requiresSplits: true },
   { href: "/royalties", label: "Royalties", requiresFinance: true },
   { href: "/payments", label: "Payments", artistLabel: "My payouts", requiresPayments: true },
@@ -82,6 +108,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (item.requiresSync && !canAccessSync(user.role)) return false;
     if (item.requiresMarketing && !canAccessMarketing(user.role)) return false;
     if (item.requiresAnalytics && !canAccessAnalytics(user.role)) return false;
+    if (item.requiresERP && !canAccessERP(user.role)) return false;
+    if (item.requiresWorkflow && !canAccessWorkflow(user.role)) return false;
+    if (item.requiresDistribution && !canAccessDistribution(user.role)) return false;
+    if (item.requiresDAM && !canAccessDAM(user.role)) return false;
     if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
     if (item.requiresSplits && !canAccessSplits(user.role)) return false;
     if (item.requiresPayments && !canAccessPayments(user.role)) return false;

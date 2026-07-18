@@ -44,6 +44,10 @@ INSTALLED_APPS = [
     "apps.analytics",
     "apps.sync",
     "apps.marketing",
+    "apps.erp",
+    "apps.workflow",
+    "apps.distribution",
+    "apps.dam",
 ]
 
 MIDDLEWARE = [

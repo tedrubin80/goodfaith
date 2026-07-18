@@ -1,0 +1,15 @@
+# Railway Celery worker — same repo, Root Directory = backend
+#
+# Duplicate the API service (or New → GitHub), set Root Directory = backend,
+# and use this start command. Share DATABASE_URL + Redis env with the API.
+#
+# Docs: docs/install/railway.md
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "celery -A config worker -l info --concurrency=2"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

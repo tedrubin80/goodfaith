@@ -1,0 +1,21 @@
+# Railway API service template — Good Faith backend
+#
+# In the Railway service settings set:
+#   Root Directory = backend
+#
+# Then this file applies (place a copy as railway.toml inside backend/, or
+# keep at repo root and set Root Directory accordingly).
+#
+# Add PostgreSQL + Redis to the project. Create a second service for Celery
+# using railway.worker.toml. See docs/install/railway.md
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 120"
+healthcheckPath = "/api/health/"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

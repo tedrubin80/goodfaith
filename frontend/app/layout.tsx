@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Good Faith Record Management",
-  description: "Flat-fee, distributor-agnostic record label management.",
+  description:
+    "Open-source, self-hosted record label management — royalties, splits, rights, and role-based portals.",
 };
 
 export default function RootLayout({

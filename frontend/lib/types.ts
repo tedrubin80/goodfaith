@@ -137,6 +137,28 @@ export type ContractType =
 
 export type ContractStatus = "draft" | "active" | "expired" | "terminated";
 
+export type ObligationStatus = "open" | "done" | "waived";
+
+export type ContractObligation = {
+  id: number;
+  contract: number;
+  title: string;
+  status: ObligationStatus;
+  status_display: string;
+  due_date: string | null;
+  notes: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const OBLIGATION_STATUSES: { value: ObligationStatus; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "done", label: "Done" },
+  { value: "waived", label: "Waived" },
+];
+
 export type Contract = {
   id: number;
   label: number;
@@ -152,6 +174,8 @@ export type Contract = {
   term_notes: string;
   file: string | null;
   filename: string;
+  obligations?: ContractObligation[];
+  open_obligation_count?: number;
   created_by: number | null;
   created_by_username: string;
   created_at: string;
@@ -250,6 +274,22 @@ export type WorkShare = {
   pro_affiliation_display?: string;
 };
 
+export type RegistrationEvent = {
+  id: number;
+  work: number;
+  status: RegistrationStatus;
+  status_display: string;
+  pro_society: ProSociety;
+  pro_society_display: string;
+  reference: string;
+  notes: string;
+  occurred_on: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MusicalWork = {
   id: number;
   label: number;
@@ -264,6 +304,7 @@ export type MusicalWork = {
   track_titles: string[];
   shares: WorkShare[];
   total_percentage: string;
+  registration_events?: RegistrationEvent[];
   created_at: string;
   updated_at: string;
 };
@@ -645,5 +686,233 @@ export const CAMPAIGN_TYPES: { value: CampaignType; label: string }[] = [
   { value: "press", label: "Press / PR" },
   { value: "social", label: "Social" },
   { value: "ads", label: "Paid ads" },
+  { value: "other", label: "Other" },
+];
+
+export type ExpenseCategory =
+  | "advance"
+  | "recording"
+  | "marketing"
+  | "video"
+  | "touring"
+  | "legal"
+  | "other";
+
+export type LabelExpense = {
+  id: number;
+  label: number;
+  artist: number | null;
+  artist_name: string;
+  release: number | null;
+  release_title: string;
+  category: ExpenseCategory;
+  category_display: string;
+  description: string;
+  amount: string;
+  currency: string;
+  incurred_on: string;
+  is_recoupable: boolean;
+  notes: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Budget = {
+  id: number;
+  label: number;
+  artist: number | null;
+  artist_name: string;
+  release: number | null;
+  release_title: string;
+  name: string;
+  category: ExpenseCategory;
+  category_display: string;
+  amount: string;
+  currency: string;
+  period_start: string | null;
+  period_end: string | null;
+  notes: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecoupmentEntryType = "charge" | "credit" | "adjustment";
+
+export type RecoupmentEntry = {
+  id: number;
+  label: number;
+  artist: number;
+  artist_name: string;
+  release: number | null;
+  release_title: string;
+  expense: number | null;
+  entry_type: RecoupmentEntryType;
+  entry_type_display: string;
+  amount: string;
+  signed_amount: string;
+  currency: string;
+  effective_on: string;
+  description: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type RecoupmentBalance = {
+  artist: number;
+  artist_name: string;
+  unrecouped: string;
+  currency: string;
+};
+
+export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
+  { value: "advance", label: "Advance" },
+  { value: "recording", label: "Recording" },
+  { value: "marketing", label: "Marketing" },
+  { value: "video", label: "Video" },
+  { value: "touring", label: "Touring" },
+  { value: "legal", label: "Legal" },
+  { value: "other", label: "Other" },
+];
+
+export const RECOUPMENT_ENTRY_TYPES: { value: RecoupmentEntryType; label: string }[] = [
+  { value: "charge", label: "Charge (unrecouped)" },
+  { value: "credit", label: "Credit (recouped)" },
+  { value: "adjustment", label: "Adjustment" },
+];
+
+export type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
+
+export type TaskPriority = "low" | "medium" | "high";
+
+export type ReleaseTask = {
+  id: number;
+  label: number;
+  release: number;
+  release_title: string;
+  title: string;
+  status: TaskStatus;
+  status_display: string;
+  priority: TaskPriority;
+  priority_display: string;
+  due_date: string | null;
+  notes: string;
+  assigned_to: number | null;
+  assigned_to_username: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const TASK_STATUSES: { value: TaskStatus; label: string }[] = [
+  { value: "todo", label: "To do" },
+  { value: "in_progress", label: "In progress" },
+  { value: "blocked", label: "Blocked" },
+  { value: "done", label: "Done" },
+];
+
+export const TASK_PRIORITIES: { value: TaskPriority; label: string }[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
+export type DeliveryStatus =
+  | "planned"
+  | "submitted"
+  | "live"
+  | "taken_down"
+  | "failed";
+
+export type DspTarget =
+  | "spotify"
+  | "apple"
+  | "amazon"
+  | "youtube"
+  | "tidal"
+  | "deezer"
+  | "other";
+
+export type DspDelivery = {
+  id: number;
+  label: number;
+  release: number;
+  release_title: string;
+  dsp: DspTarget;
+  dsp_display: string;
+  status: DeliveryStatus;
+  status_display: string;
+  distributor: string;
+  target_live_date: string | null;
+  submitted_at: string | null;
+  live_at: string | null;
+  store_url: string;
+  notes: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const DELIVERY_STATUSES: { value: DeliveryStatus; label: string }[] = [
+  { value: "planned", label: "Planned" },
+  { value: "submitted", label: "Submitted" },
+  { value: "live", label: "Live" },
+  { value: "taken_down", label: "Taken down" },
+  { value: "failed", label: "Failed" },
+];
+
+export const DSP_TARGETS: { value: DspTarget; label: string }[] = [
+  { value: "spotify", label: "Spotify" },
+  { value: "apple", label: "Apple Music" },
+  { value: "amazon", label: "Amazon Music" },
+  { value: "youtube", label: "YouTube Music" },
+  { value: "tidal", label: "Tidal" },
+  { value: "deezer", label: "Deezer" },
+  { value: "other", label: "Other" },
+];
+
+export type AssetType =
+  | "master"
+  | "stem"
+  | "artwork"
+  | "video"
+  | "document"
+  | "other";
+
+export type DigitalAsset = {
+  id: number;
+  label: number;
+  artist: number | null;
+  artist_name: string;
+  release: number | null;
+  release_title: string;
+  track: number | null;
+  track_title: string;
+  asset_type: AssetType;
+  asset_type_display: string;
+  title: string;
+  version_label: string;
+  file: string;
+  file_url: string;
+  notes: string;
+  uploaded_by: number | null;
+  uploaded_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const ASSET_TYPES: { value: AssetType; label: string }[] = [
+  { value: "master", label: "Master audio" },
+  { value: "stem", label: "Stem" },
+  { value: "artwork", label: "Artwork" },
+  { value: "video", label: "Video" },
+  { value: "document", label: "Document" },
   { value: "other", label: "Other" },
 ];

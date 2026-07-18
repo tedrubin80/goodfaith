@@ -228,3 +228,53 @@ export function canAccessMarketing(role: User["role"]): boolean {
 export function canManageMarketing(role: User["role"]): boolean {
   return role === "manager" || role === "ar" || role === "admin";
 }
+
+export function canAccessERP(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "artist" || role === "admin";
+}
+
+export function canManageERP(role: User["role"]): boolean {
+  return role === "manager" || role === "finance" || role === "admin";
+}
+
+export function canAccessWorkflow(role: User["role"]): boolean {
+  return (
+    role === "manager" ||
+    role === "finance" ||
+    role === "ar" ||
+    role === "artist" ||
+    role === "admin"
+  );
+}
+
+export function canManageWorkflow(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}
+
+export function canAccessDistribution(role: User["role"]): boolean {
+  return (
+    role === "manager" ||
+    role === "finance" ||
+    role === "ar" ||
+    role === "artist" ||
+    role === "admin"
+  );
+}
+
+export function canManageDistribution(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}
+
+export function canAccessDAM(role: User["role"]): boolean {
+  return (
+    role === "manager" ||
+    role === "finance" ||
+    role === "ar" ||
+    role === "artist" ||
+    role === "admin"
+  );
+}
+
+export function canManageDAM(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}

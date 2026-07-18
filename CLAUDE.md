@@ -9,7 +9,7 @@
 
 **Product name:** Good Faith Record Management
 
-**Goal:** Design and build the definitive, "unicorn" Record Label Management Software — a single platform that covers all 20 functional modules of the music label business at professional depth, with transparent flat-fee pricing, no distribution lock-in, and full data portability.
+**Goal:** Design and build open-source, self-hosted Record Label Management Software — a single platform that covers all 20 functional modules of the music label business at professional depth, with no distribution lock-in, no cut of earnings, and full data portability.
 
 **Research basis:** This project is grounded in deep industry intelligence conducted July 4, 2026:
 - 200+ discrete features cataloged across 20 functional modules, sourced from first-party vendor pages
@@ -96,7 +96,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | 17 | Communication & Collaboration | Medium | Phase 3 |
 | 18 | Financial Accounting & ERP | Medium | Phase 3 |
 | 19 | Legal & Compliance | High | Phase 2 |
-| 20 | Platform / Infrastructure | Critical | Phase 1 (core) / Phase 2 (2FA, S3, Stripe billing) |
+| 20 | Platform / Infrastructure | Critical | Phase 1 (core) / Phase 2 (2FA, S3) |
 
 ---
 
@@ -151,8 +151,8 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | Frontend (portal) | **React + Next.js 16 (TypeScript)** | Artist / Manager / Finance / A&R portals as a single codebase with role-based views (Gap 5). |
 | Marketing site | **Astro (static)** | Pre-launch credibility page at usegoodfaith.com — separate from the authenticated portal. See `PRODUCT.md` for brand/design brief. |
 | File / asset storage | **Local `MEDIA_ROOT` in dev; S3-compatible object storage in prod** (AWS S3 or Cloudflare R2) | Royalty statement uploads work locally today; production DAM and statement storage should move to signed-URL object storage. |
-| Payments | **Stripe** (cards/subscriptions) + **ACH/wire** rails | Manual mark-paid + ACH CSV batch export live. Stripe Connect automated disbursement deferred to Phase 2. |
-| Email / waitlist | **Listmonk** (planned) | Waitlist email capture deferred until pricing and Listmonk infra are finalized. Marketing CTAs currently point to pricing and `hello@usegoodfaith.com`. |
+| Payments (artist royalties) | **Mark-paid + ACH CSV** | Manual mark-paid and ACH CSV batch export. **No SaaS subscription billing** (Stripe/PayPal plans out of scope). |
+| Email | Optional self-hosted SMTP | No Listmonk waitlist / SaaS email capture. |
 
 **Trade-off accepted:** a Node/TypeScript full-stack (Next.js + Prisma) would give one language end-to-end and faster portal iteration, but was passed over because the distributor-statement-normalization moat benefits more from Python's data ecosystem than the frontend benefits from stack unification.
 
@@ -162,7 +162,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 
 ## Implementation Status (July 17, 2026)
 
-**Phase 1 is complete.** Phase 2 unblocked scope is complete (July 2026) — see [`docs/PHASE2.md`](docs/PHASE2.md). Phase 3 in progress: A&R, analytics, sync, marketing — see [`docs/PHASE3.md`](docs/PHASE3.md). Stripe Connect, DDEX, Listmonk, and publishing/contracts depth remain deferred.
+**Phase 1 is complete.** Phase 2 unblocked scope is complete (July 2026) — see [`docs/PHASE2.md`](docs/PHASE2.md). Phase 3 in progress: A&R, analytics, sync, marketing — see [`docs/PHASE3.md`](docs/PHASE3.md). Open source (MIT). No SaaS subscription billing. DDEX / CWR / Chartmetric remain deferred integrations.
 
 See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 
@@ -177,24 +177,24 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 | **Catalog (Module 1 — Phase 1)** | `Label`, `LabelMembership`, `Artist`, `Release`, `Track` models. ISRC + **ISWC** on tracks, UPC on releases. API at `/api/catalog/`. Portal CRUD at `/catalog`, `/catalog/artists`, release detail (tracks). Manager/Finance/A&R/Admin write; Artists read-own. |
 | **Royalties (Module 4 — Phase 1)** | `RoyaltyStatement`, `RoyaltyLineItem`, `RoyaltyRun`, `RoyaltyRunPayout`. **10-distributor parser** (Gap 1): DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, Vydia, The Orchard. Run consolidation applies finalized split sheets. Portal: upload, statement detail, run create, payout breakdown, issue payouts. |
 | **Splits (Module 7 — Phase 1)** | `SplitSheet` (one per track) + `SplitEntry`. API at `/api/splits/sheets/`. Finalized sheets must total 100%. Applied during royalty run consolidation. Portal at `/splits`. |
-| **Payments (Module 5 — Phase 1)** | `PayoutBatch` + `Payout`. Issue batch from run, mark-paid, **ACH CSV export**, **PDF statements**. Stripe Connect deferred. Portal at `/payments`. |
+| **Payments (Module 5 — Phase 1)** | `PayoutBatch` + `Payout`. Issue batch from run, mark-paid, **ACH CSV export**, **PDF statements**. No SaaS billing. Portal at `/payments`. |
 | **Data export (Gap 6 — Phase 1)** | `GET /api/export/?export_format=json|csv` — role-scoped export. Finance/Manager/Admin get full label data + audit log; Artist gets own data; A&R gets catalog only. Portal at `/export`. |
 | **Audit trail** | `AuditEvent` in `apps/audit/` — immutable log of uploads, parses, consolidation, split finalization, payout issuance, mark-paid. Portal at `/activity`. |
 | **Artist portal (Module 12 — Phase 1 basic)** | Role-aware dashboard (`ArtistDashboard`), scoped nav labels ("My releases", "My payouts"), simplified artist payments view. |
 | **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/pipeline`, `/sync`, `/marketing`, `/analytics`, `/splits`, `/royalties`, `/payments`, `/notifications`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
-| **Marketing site** | Astro static site at `marketing/`. Live at **usegoodfaith.com**. Waitlist deferred (Listmonk); CTAs → pricing and `hello@usegoodfaith.com`. |
+| **Marketing / project site** | Astro static site at `marketing/`. Optional; not a SaaS funnel. Portal `/` is the install homepage. |
 
 ### Phase 2 (complete — deferred items remain)
 
 | Shipped | Deferred (Phase 2+/3) |
 |---|---|
-| **2FA** (TOTP + backup codes, mandatory for Manager/Finance/Admin) | Stripe Connect + subscription billing *(payment model TBD)* |
+| **2FA** (TOTP + backup codes, mandatory for Manager/Finance/Admin) | — |
 | **ISWC** on tracks | DDEX ingestion |
 | **S3/R2** object storage (optional env config) | Publishing admin depth (CWR, society APIs) |
-| **Contracts** scaffold (`/api/contracts/`, `/contracts`) | Obligation/AI extraction, e-sign |
+| **Contracts** scaffold (`/api/contracts/`, `/contracts`) | Obligation/AI extraction, e-sign vendors |
 | **Publishing** scaffold (`/api/publishing/works/`, `/publishing`) | CWR filing, society APIs |
-| **Artist earnings** (`/earnings`) + **portal invites** | Email notifications |
-| Password change in Security settings | Listmonk waitlist |
+| **Artist earnings** (`/earnings`) + **portal invites** | Email notifications (optional SMTP) |
+| Password change in Security settings | |
 | **Statement PDFs** (run + batch + payout) | |
 | **In-app notifications** (`/notifications`) | |
 
@@ -205,8 +205,8 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 | **A&R pipeline** (`/api/ar/prospects/`, `/pipeline`) — stages, priority, discovery links, signed-artist link | ERP |
 | **Analytics basics** (`/api/analytics/summary/`, `/analytics`) — role-scoped internal dashboards from royalty/catalog/pipeline data | Chartmetric / Soundcharts integrations |
 | **Sync licensing** (`/api/sync/opportunities/`, `/sync`) — pitch-to-license tracker with fee/territory/catalog links | Supervisor marketplace, cue sheets, DISCO |
-| **Marketing campaigns** (`/api/marketing/campaigns/`, `/marketing`) — release/playlist/press promo tracker with smart-link URLs | Built-in smart links, ad automation, Listmonk |
-| | Stripe/DDEX/CWR/Listmonk |
+| **Marketing campaigns** (`/api/marketing/campaigns/`, `/marketing`) — release/playlist/press promo tracker with smart-link URLs | Built-in smart links, ad automation |
+| | DDEX / CWR / Chartmetric |
 
 ### Phase 1 end-to-end flow
 
@@ -222,7 +222,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 ✅ Phase 1 — Platform, catalog, royalties (10 distributors), splits, payments, export, audit, artist portal
 ✅ Phase 2 — 2FA, ISWC, S3, contracts, publishing scaffold, artist earnings/invites, statement PDFs, in-app notifications
 🟡 Phase 3 — A&R + analytics + sync + marketing shipped; ERP / external analytics next
-⬜ Phase 2+/3 deferred — Stripe Connect, DDEX, CWR/society APIs, email/Listmonk, Chartmetric
+⬜ Deferred integrations — DDEX, CWR/society APIs, Chartmetric/Soundcharts
 ```
 
 ### Repo layout (code)
@@ -331,29 +331,22 @@ Place nginx/Caddy in front with TLS; set `X-Forwarded-Proto: https` and enable `
 **Phase 1 (statement parsers):** DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, Vydia, The Orchard
 **Phase 2 (platform security):** Two-factor authentication (TOTP, backup codes, optional WebAuthn)
 **Phase 2 (API integrations):** FUGA, The Orchard, Merlin
-**Phase 2 (payment rails):** Stripe Connect, international payments
-**Phase 2 (ACH):** Artist bank details on file; automated ACH via Stripe *(Phase 1 ships manual ACH CSV export)*
+**Phase 2 (ACH):** Artist bank details on file; optional future automation *(Phase 1 ships manual ACH CSV export)*
 **Phase 3 (PRO registration):** ASCAP, BMI, SESAC, SOCAN, SoundExchange
 **Phase 3 (analytics):** Chartmetric API, Soundcharts API
 **Phase 4 (sync):** DISCO integration or direct supervisor network
 
 ---
 
-## Pricing Strategy
+## Licensing & commercial model
 
-**Core principle:** Flat fee. Never a percentage of earnings.
+**License:** MIT — see [`LICENSE`](LICENSE).
 
-**Recommended tier structure:**
-- **Starter** — ~$49/mo or $499/yr — up to 10 artists, unlimited releases, core royalty accounting, artist portals
-- **Growth** — ~$149/mo or $1,499/yr — up to 50 artists, publishing admin, contract management, analytics
-- **Pro** — ~$349/mo or $3,499/yr — unlimited artists, API access, white-label portals, priority support
-- **Enterprise** — Custom — distributors, aggregators, large independents
+**Core principle:** Never a percentage of earnings. Self-host for free; no SaaS subscription billing in-product (no Stripe/PayPal plans for access).
 
-**Key pricing commitments to make publicly:**
-- No percentage of royalties, ever
-- Full data export included on all plans
-- Cancel anytime, data accessible for 90 days post-cancellation
-- Price lock guarantee for annual subscribers
+Artist royalty **payouts** use mark-paid + ACH CSV export (ops tooling), not platform subscription fees.
+
+Optional future: paid support / hosted offerings outside this repo — not required to run the software.
 
 ---
 
@@ -437,9 +430,9 @@ All findings are grounded in fetched, first-party pages. Key sources:
 2. **The master report** (`docs/research/label_management_software_master_report.md`) is the source of truth for features and competitor intelligence.
 3. **The 6 strategic gaps** are the north star — every product decision should address at least one of them.
 4. **The primary ICP** is an indie label with 5–50 signed artists, multiple distributors, outgrowing spreadsheets. Design for them first.
-5. **Pricing constraint:** Never propose a percentage-of-earnings model. Flat fee only.
-6. **Trust is the #1 brand value.** Data portability, transparent pricing, and role-based access are non-negotiable.
+5. **Licensing:** MIT. Never propose a percentage-of-earnings model. No SaaS subscription billing in-product.
+6. **Trust is the #1 brand value.** Data portability, role-based access, and self-host control are non-negotiable.
 7. When writing product copy, pull from the verbatim Reddit quotes in the Community Intelligence section — they are the exact language the market uses.
-8. **Module build order:** Phase 1 and unblocked Phase 2 complete. Phase 3 in progress (A&R, analytics, sync, marketing). Deferred: Stripe Connect, DDEX, publishing/contracts depth, email/Listmonk, Chartmetric/Soundcharts, ERP. See `docs/PHASE2.md` and `docs/PHASE3.md`.
-9. **Marketing vs portal:** `marketing/` is the public pre-launch site (`PRODUCT.md` governs copy/design). `frontend/` is the authenticated label portal. Do not add a waitlist form until Listmonk is configured.
+8. **Module build order:** Phase 1 and unblocked Phase 2 complete. Phase 3 in progress. Deferred integrations: DDEX, CWR, Chartmetric/Soundcharts. See `docs/PHASE2.md`, `docs/PHASE3.md`, and `docs/install/`.
+9. **Portal vs project site:** `frontend/` `/` is the install homepage. `marketing/` is optional. Deploy templates: `frontend/vercel.json`, `railway.toml`.
 10. **Financial data access:** A&R must never see royalty statements, runs, splits, or payout data. Artists see **only their own** splits and payouts — never label-wide financial data. Enforce in API queryset filters and portal nav, not just UI hiding.

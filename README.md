@@ -1,51 +1,49 @@
 # Good Faith Record Management
 
-The flat-fee, distributor-agnostic record label management platform for indie labels outgrowing spreadsheets.
+**Open-source, self-hosted label management** for indie labels outgrowing spreadsheets.
 
-No percentage-of-earnings pricing. No distribution lock-in. Full data portability, always.
+Consolidate royalty statements from every distributor you already use. Run splits and payouts with role-based portals. Export everything anytime. **No cut of your earnings. No SaaS subscription billing.**
 
-**Phase 1 is complete.** See [`docs/PHASE1.md`](./docs/PHASE1.md) for onboarding, the end-to-end royalty walkthrough, and production deploy.
+[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
+[![CI](https://github.com/tedrubin80/goodfaith/actions/workflows/ci.yml/badge.svg)](https://github.com/tedrubin80/goodfaith/actions/workflows/ci.yml)
 
-## The problem
+---
 
-Indie record labels (5–50 signed artists) run their business on Google Sheets until multi-distributor royalty complexity breaks the spreadsheet. Every existing tool either forces a distributor switch, takes a cut of earnings, or is priced/scoped for either solo DIY artists or enterprise labels — nothing serves the mid-market well.
+## Why it exists
 
-## What makes this different
+Indie labels (roughly 5–50 artists) live in Google Sheets until multi-distributor royalties break the spreadsheet. Existing tools either force a distributor switch, take a percentage of earnings, or are scoped for DIY solo artists or enterprise teams.
 
-1. **Distributor-agnostic royalty hub** — ingest and normalize statements from 10 major distributors into one royalty run, without switching distributors.
-2. **Flat-fee, no lock-in pricing** — never a percentage of earnings; full CSV/JSON export at any time.
-3. **The indie-to-pro continuum** — built for labels between DIY tools and inaccessible enterprise platforms.
-4. **Role-based operations security** — separate Artist / Manager / Finance / A&R views from day one.
-5. **Portability & longevity guarantees** — open standards and full data export, so a platform shutdown never strands your catalog.
-6. **Immutable audit trail** — every financial action logged for finance and compliance.
+Good Faith is the mid-market ops stack you run **yourself**.
 
-See [`CLAUDE.md`](./CLAUDE.md) for the full strategic context, competitor analysis, ICP, pricing tiers, and Phase 2 roadmap.
+### What you get
 
-## Repo layout
-
-| Path | Purpose |
+| Capability | What it means |
 |---|---|
-| `backend/` | Django + DRF API |
-| `frontend/` | Next.js portal (Artist / Manager / Finance / A&R) |
-| `marketing/` | Astro site for usegoodfaith.com |
-| `docker-compose.yml` | Local dev stack |
-| `docker-compose.prod.yml` | Production stack (Gunicorn + Next.js prod) |
-| `docs/PHASE1.md` | Phase 1 onboarding and walkthrough |
+| **Distributor-agnostic royalties** | Ingest DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, Vydia, The Orchard |
+| **Splits → runs → payouts** | Finalize 100% sheets, consolidate statements, mark paid / export ACH CSV |
+| **Role-based portals** | Artist / Manager / Finance / A&R — finance data stays off A&R desks |
+| **Catalog & rights** | Artists, releases, tracks (ISRC/ISWC/UPC), contracts, publishing works |
+| **Ops modules** | A&R pipeline, sync licensing, marketing campaigns, analytics, export, audit |
+| **Trust defaults** | 2FA for financial roles, immutable activity log, full JSON/CSV export |
 
-## Local development
+---
+
+## Quick start (local)
 
 ```bash
+git clone https://github.com/tedrubin80/goodfaith.git
+cd goodfaith
 cp backend/.env.example backend/.env
 docker compose up --build
 ```
 
-| Service | URL |
+| | URL |
 |---|---|
-| Portal | http://localhost:3020 |
+| Portal + install homepage | http://localhost:3020 |
 | API | http://localhost:8020 |
 | Health | http://localhost:8020/api/health/ |
 
-### Bootstrap a label (no admin UI required)
+Seed a label and sign in:
 
 ```bash
 docker compose exec backend python manage.py seed_label \
@@ -55,33 +53,62 @@ docker compose exec backend python manage.py seed_label \
   --demo
 ```
 
-Then sign in at http://localhost:3020/login.
+→ http://localhost:3020/login
 
-## Phase 1 modules
+---
 
-| Module | Status |
-|---|---|
-| Platform + RBAC | ✅ |
-| Catalog (API + portal CRUD) | ✅ |
-| Royalties (10-distributor parser, runs, consolidation) | ✅ |
-| Splits | ✅ |
-| Payments (batch issue, mark paid, ACH CSV export) | ✅ |
-| Data export (JSON + CSV ZIP) | ✅ |
-| Audit trail | ✅ |
-| Artist portal | ✅ |
+## Deploy
 
-**Phase 2:** Unblocked scope complete (2FA, ISWC, S3/R2, contracts + publishing scaffolds, artist earnings/invites, statement PDFs, in-app notifications). Stripe Connect / DDEX / Listmonk / CWR remain deferred — see `docs/PHASE2.md`.
+| Target | Role | Guide / template |
+|---|---|---|
+| **Docker Compose** | Full stack locally or on a VPS | [`docs/install/install.md`](./docs/install/install.md) |
+| **Railway** | API + Postgres + Redis + Celery | [`docs/install/railway.md`](./docs/install/railway.md) · [`railway.toml`](./railway.toml) |
+| **Vercel** | Next.js portal | [`docs/install/vercel.md`](./docs/install/vercel.md) · [`frontend/vercel.json`](./frontend/vercel.json) |
+| **Architecture & env** | Reference | [`docs/install/technical.md`](./docs/install/technical.md) |
 
-**Phase 3:** A&R (`/pipeline`), Analytics (`/analytics`), Sync (`/sync`), and Marketing (`/marketing`) shipped — see `docs/PHASE3.md`.
+**Suggested cloud split:** Railway for the Django/Celery stack, Vercel for the portal (`NEXT_PUBLIC_API_URL` → your Railway API).
 
-## Production
+---
 
-```bash
-cp backend/.env.production.example backend/.env
-# Edit secrets and domains
-docker compose -f docker-compose.prod.yml up --build -d
+## Repo layout
+
+```
+backend/          Django + DRF API, Celery, migrations
+frontend/         Next.js portal (install homepage at /)
+marketing/        Optional Astro project site
+docs/install/     Install & deploy guides
+docs/PHASE*.md    Product phase notes
+railway.toml      Railway API template
+railway.worker.toml
+frontend/vercel.json
 ```
 
-## CI
+---
 
-GitHub Actions runs backend tests and frontend build on every push to `main` (`.github/workflows/ci.yml`).
+## Status
+
+- **Phase 1** — Royalty pipeline end-to-end (catalog, statements, splits, payouts, export, audit)
+- **Phase 2** — 2FA, S3/R2, contracts & publishing scaffolds, statement PDFs, in-app notifications
+- **Phase 3** — A&R, analytics, sync, marketing campaigns (more ops modules in progress)
+
+Deep context: [`CLAUDE.md`](./CLAUDE.md) · Research: [`docs/research/`](./docs/research/)
+
+---
+
+## Contributing
+
+Issues and PRs welcome. Keep changes focused; match existing Django/Next patterns and RBAC rules (Gap 5: role-scoped data).
+
+```bash
+# Backend tests (example)
+cd backend && python manage.py test
+
+# Frontend
+cd frontend && npm run build
+```
+
+---
+
+## License
+
+[MIT](./LICENSE) © 2026 Ted Rubin

@@ -14,7 +14,6 @@ type BadgeStatus =
   | "active"
   | "expired"
   | "terminated"
-  | "ready"
   | "submitted"
   | "registered"
   | "lead"
@@ -32,7 +31,21 @@ type BadgeStatus =
   | "licensed"
   | "planned"
   | "completed"
-  | "cancelled";
+  | "todo"
+  | "in_progress"
+  | "blocked"
+  | "done"
+  | "live"
+  | "taken_down"
+  | "failed"
+  | "open"
+  | "waived"
+  | "master"
+  | "stem"
+  | "artwork"
+  | "video"
+  | "document"
+  | "other";
 
 const STYLES: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -66,6 +79,20 @@ const STYLES: Record<string, string> = {
   licensed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
   planned: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
   completed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  todo: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  in_progress: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  blocked: "bg-red-500/10 text-red-800 dark:text-red-200",
+  done: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  live: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  taken_down: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  open: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  waived: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  master: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  stem: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  artwork: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  video: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  document: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  other: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
 };
 
 export function StatusBadge({

@@ -5,12 +5,56 @@ from rest_framework import serializers
 
 from apps.catalog.models import Artist, Label, Track
 
-from .models import MusicalWork, RegistrationStatus, WorkShare
+from .models import MusicalWork, RegistrationEvent, RegistrationStatus, WorkShare
 
 
 def _user_label_ids(context: dict) -> set[int]:
     user = context["request"].user
     return set(user.label_memberships.values_list("label_id", flat=True))
+
+
+class RegistrationEventSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    pro_society_display = serializers.CharField(
+        source="get_pro_society_display", read_only=True
+    )
+    created_by_username = serializers.CharField(
+        source="created_by.username", read_only=True, default=""
+    )
+
+    class Meta:
+        model = RegistrationEvent
+        fields = (
+            "id",
+            "work",
+            "status",
+            "status_display",
+            "pro_society",
+            "pro_society_display",
+            "reference",
+            "notes",
+            "occurred_on",
+            "created_by",
+            "created_by_username",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_by", "created_at", "updated_at")
+
+    def validate_work(self, work: MusicalWork) -> MusicalWork:
+        if work.label_id not in _user_label_ids(self.context):
+            raise serializers.ValidationError("Work not accessible.")
+        return work
+
+    def create(self, validated_data):
+        validated_data["created_by"] = self.context["request"].user
+        event = super().create(validated_data)
+        work = event.work
+        work.registration_status = event.status
+        if event.pro_society:
+            work.target_pro = event.pro_society
+        work.save(update_fields=["registration_status", "target_pro", "updated_at"])
+        return event
 
 
 class WorkShareSerializer(serializers.ModelSerializer):
@@ -55,6 +99,7 @@ class MusicalWorkSerializer(serializers.ModelSerializer):
     )
     total_percentage = serializers.SerializerMethodField()
     track_titles = serializers.SerializerMethodField()
+    registration_events = RegistrationEventSerializer(many=True, read_only=True)
 
     class Meta:
         model = MusicalWork
@@ -72,6 +117,7 @@ class MusicalWorkSerializer(serializers.ModelSerializer):
             "track_titles",
             "shares",
             "total_percentage",
+            "registration_events",
             "created_at",
             "updated_at",
         )
