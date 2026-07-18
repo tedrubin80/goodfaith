@@ -39,7 +39,8 @@ docker compose up --build
 
 | | URL |
 |---|---|
-| Portal + install homepage | http://localhost:3020 |
+| Portal (`/` → login) | http://localhost:3020 |
+| Install / health page | http://localhost:3020/install |
 | API | http://localhost:8020 |
 | Health | http://localhost:8020/api/health/ |
 
@@ -74,7 +75,7 @@ docker compose exec backend python manage.py seed_label \
 
 ```
 backend/          Django + DRF API, Celery, migrations
-frontend/         Next.js portal (install homepage at /)
+frontend/         Next.js portal (/ → login; /install for local setup)
 DevWeb/           Developer showcase site (Astro; extractable to its own repo)
 docs/install/     Install & deploy guides
 docs/PHASE*.md    Product phase notes

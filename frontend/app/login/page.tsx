@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -67,10 +66,7 @@ function LoginForm() {
   return (
     <div className="min-h-full flex items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
-        <Link href="/" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)]">
-          ← Back
-        </Link>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           {pendingToken ? "Two-factor authentication" : "Sign in"}
         </h1>
         <p className="mt-2 text-sm text-[var(--color-muted)]">

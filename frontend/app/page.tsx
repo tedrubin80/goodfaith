@@ -1,5 +1,6 @@
-import { InstallHome } from "@/components/InstallHome";
+import { redirect } from "next/navigation";
 
+/** Portal entry — marketing lives on DevWeb / Vercel marketing project. */
 export default function Home() {
-  return <InstallHome />;
+  redirect("/login");
 }

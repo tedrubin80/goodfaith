@@ -1,6 +1,6 @@
 # Deploy the portal on Vercel
 
-The Next.js app in `frontend/` is the install homepage + authenticated portal. Host it on Vercel; keep the Django API on Railway (or Docker).
+The Next.js app in `frontend/` is the authenticated portal (`/` → `/login`). Host it on Vercel; keep the Django API on Railway (or Docker). The local install/health page lives at `/install`.
 
 ## Template file
 
@@ -34,9 +34,12 @@ Include preview URLs if you use them, or a wildcard pattern your API settings al
 
 ## 4. Deploy
 
-Push to `main` or click **Deploy**. The site root (`/`) shows the local/install welcome UI and polls `NEXT_PUBLIC_API_URL/api/health/`.
+Push to `main` or click **Deploy**. The site root (`/`) redirects to sign-in.
 
-Sign-in: `https://your-app.vercel.app/login`.
+| Path | Purpose |
+|---|---|
+| `/` → `/login` | Portal entry |
+| `/install` | Local install / API health UI (optional) |
 
 ## Checklist
 
