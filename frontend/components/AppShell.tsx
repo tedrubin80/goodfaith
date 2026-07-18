@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { apiFetch } from "@/lib/api";
-import { canAccessARPipeline, canAccessAuditLog, canAccessContracts, canAccessPayments, canAccessPublishing, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
+import { canAccessARPipeline, canAccessAnalytics, canAccessAuditLog, canAccessContracts, canAccessPayments, canAccessPublishing, canAccessRoyalties, canAccessSplits, canViewRoster, isArtistRole, useAuth } from "@/lib/auth";
 
 type NavItem = {
   href: string;
@@ -19,6 +19,7 @@ type NavItem = {
   requiresContracts?: boolean;
   requiresPublishing?: boolean;
   requiresARPipeline?: boolean;
+  requiresAnalytics?: boolean;
   requiresEarnings?: boolean;
   artistOnly?: boolean;
 };
@@ -28,6 +29,7 @@ const NAV: NavItem[] = [
   { href: "/catalog", label: "Catalog", artistLabel: "My releases" },
   { href: "/catalog/artists", label: "Artists", requiresRoster: true },
   { href: "/pipeline", label: "A&R Pipeline", requiresARPipeline: true },
+  { href: "/analytics", label: "Analytics", artistLabel: "My analytics", requiresAnalytics: true },
   { href: "/contracts", label: "Contracts", artistLabel: "My contracts", requiresContracts: true },
   { href: "/publishing", label: "Publishing", artistLabel: "My works", requiresPublishing: true },
   { href: "/earnings", label: "My earnings", requiresEarnings: true, artistOnly: true },
@@ -73,6 +75,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (item.requiresContracts && !canAccessContracts(user.role)) return false;
     if (item.requiresPublishing && !canAccessPublishing(user.role)) return false;
     if (item.requiresARPipeline && !canAccessARPipeline(user.role)) return false;
+    if (item.requiresAnalytics && !canAccessAnalytics(user.role)) return false;
     if (item.requiresFinance && !canAccessRoyalties(user.role)) return false;
     if (item.requiresSplits && !canAccessSplits(user.role)) return false;
     if (item.requiresPayments && !canAccessPayments(user.role)) return false;

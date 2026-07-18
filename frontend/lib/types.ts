@@ -423,3 +423,96 @@ export const SPLIT_ROLES: { value: SplitRole; label: string }[] = [
   { value: "label", label: "Label" },
   { value: "other", label: "Other" },
 ];
+
+export type AnalyticsAmountRow = {
+  amount: string;
+};
+
+export type AnalyticsDistributorRow = AnalyticsAmountRow & {
+  distributor: string;
+  distributor_display: string;
+  statement_count: number;
+};
+
+export type AnalyticsPeriodRow = AnalyticsAmountRow & {
+  period: string;
+};
+
+export type AnalyticsArtistRow = AnalyticsAmountRow & {
+  artist_id: number;
+  artist_name: string;
+};
+
+export type AnalyticsTrackRow = AnalyticsAmountRow & {
+  track_id: number | null;
+  track_title: string;
+  isrc: string;
+};
+
+export type AnalyticsRunRow = AnalyticsAmountRow & {
+  run_id: number;
+  run_name: string;
+  currency: string;
+};
+
+export type AnalyticsPipelineStageRow = {
+  stage: string;
+  stage_display: string;
+  count: number;
+};
+
+export type LabelAnalyticsSummary = {
+  scope: "label";
+  currency: string;
+  totals: {
+    statement_gross: string;
+    statement_count: number;
+    run_allocated: string;
+    payout_pending: string;
+    payout_paid: string;
+    artists: number;
+    releases: number;
+    tracks: number;
+  };
+  by_distributor: AnalyticsDistributorRow[];
+  by_period: AnalyticsPeriodRow[];
+  by_artist: AnalyticsArtistRow[];
+  by_track: AnalyticsTrackRow[];
+  pipeline?: {
+    total: number;
+    by_stage: AnalyticsPipelineStageRow[];
+  };
+};
+
+export type ArtistAnalyticsSummary = {
+  scope: "artist";
+  currency: string;
+  artist_id: number | null;
+  artist_name: string | null;
+  totals: {
+    earnings: string;
+    payout_pending: string;
+    payout_paid: string;
+  };
+  by_period: AnalyticsPeriodRow[];
+  by_track: AnalyticsTrackRow[];
+  by_run: AnalyticsRunRow[];
+};
+
+export type OpsAnalyticsSummary = {
+  scope: "ops";
+  catalog: {
+    artists: number;
+    releases: number;
+    tracks: number;
+  };
+  pipeline: {
+    total: number;
+    by_stage: AnalyticsPipelineStageRow[];
+  };
+};
+
+export type AnalyticsSummary =
+  | LabelAnalyticsSummary
+  | ArtistAnalyticsSummary
+  | OpsAnalyticsSummary;

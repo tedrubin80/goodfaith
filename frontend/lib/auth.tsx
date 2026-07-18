@@ -190,3 +190,13 @@ export function canAccessARPipeline(role: User["role"]): boolean {
 export function canManageARPipeline(role: User["role"]): boolean {
   return role === "manager" || role === "ar" || role === "admin";
 }
+
+export function canAccessAnalytics(role: User["role"]): boolean {
+  return (
+    role === "manager" ||
+    role === "finance" ||
+    role === "ar" ||
+    role === "artist" ||
+    role === "admin"
+  );
+}

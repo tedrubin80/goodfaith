@@ -1,13 +1,12 @@
-# Phase 3 — A&R Management (starter)
+# Phase 3 — Mid-market ops modules
 
-Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 security/scaffolds. The first ship is **A&R pipeline** (Module 11) — the clearest ICP fit for indie labels with an existing A&R role and Gap 5 RBAC.
+Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 security/scaffolds. Shipped so far: **A&R pipeline** (Module 11) and **Analytics & Reporting basics** (Module 15 — internal dashboards).
 
 ## Why A&R first
 
 - Labels already have an `ar` role that could manage catalog/contracts but had no talent pipeline.
 - Gap 5 requires A&R to see signing status **without** royalty/payout data — a dedicated pipeline module enforces that boundary.
 - Spec features (pipeline stages, talent tracking links, A&R permissions) map cleanly onto existing Django+DRF / Next.js patterns.
-- Analytics (Module 15) needs more product design (Chartmetric vs internal reporting) and is deferred.
 
 ## Shipped — A&R Pipeline (July 2026)
 
@@ -43,18 +42,59 @@ Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 sec
 
 `/pipeline` — stage filter chips, prospect table, create/edit form. Nav item **A&R Pipeline** for Manager / A&R / Admin only.
 
-## Not in this starter
+### Not in the A&R starter
 
 - Streaming/social analytics auto-ingest (Chartmetric, etc.)
 - Mentoring / community leaderboard funnels
 - Automatic roster creation on “signed”
 - Prospect activity timeline / notes thread (single `notes` field only)
 
+---
+
+## Shipped — Analytics & Reporting basics (July 2026)
+
+Internal dashboards aggregated from existing royalty runs, statements, payouts, catalog, and pipeline data. **No Chartmetric / Soundcharts integrations** yet (deferred).
+
+### API
+
+| Endpoint | Notes |
+|---|---|
+| `GET /api/analytics/summary/` | Role-scoped summary |
+| Query `?period_start=&period_end=` | Optional ISO date filters (label financial scope) |
+
+### RBAC (Gap 5)
+
+| Role | Response `scope` | Contents |
+|---|---|---|
+| Finance / Manager / Admin | `label` | Statement gross, run allocations, payout pending/paid; breakdowns by distributor, period, artist, track; catalog counts. Manager/Admin also get pipeline stage counts. **Mandatory 2FA.** |
+| Artist | `artist` | Own earnings, payout pending/paid; by period, track, and royalty run. Never label-wide financials. |
+| A&R | `ops` | Catalog counts + pipeline stage counts only — **no royalty/payout figures**. |
+
+### Portal
+
+`/analytics` — simple totals + CSS bar lists / tables. Nav for all label roles (artist label: **My analytics**).
+
+### Aggregation sources
+
+- Distributor / period totals → processed `RoyaltyStatement` + `RoyaltyLineItem`
+- Artist / track allocations → `RoyaltyRunPayout` (post-split)
+- Payout pending/paid → `Payout`
+- Ops → `Artist` / `Release` / `Track` counts + `Prospect` by stage
+
+### Not in this starter
+
+- Chartmetric / Soundcharts / playlist / fan analytics
+- Custom report builder / scheduled email reports
+- Territory / DSP store drill-downs beyond line-item period rollups
+- CSV export of analytics slices (use `/api/export/` for raw data)
+
+---
+
 ## Remaining Phase 3+
 
 | Module | Status |
 |---|---|
-| Analytics & Reporting (internal dashboards) | Next candidate |
+| Analytics & Reporting (external integrations) | Deferred — Chartmetric / Soundcharts |
 | Sync Licensing Management | Deferred |
 | Marketing & Promotion | Deferred |
 | Communication & Collaboration | Deferred (in-app notifications already in Phase 2) |
