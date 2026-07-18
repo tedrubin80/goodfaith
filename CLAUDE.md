@@ -162,7 +162,7 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 
 ## Implementation Status (July 17, 2026)
 
-**Phase 1 is complete.** Phase 2 unblocked scope is complete (July 2026) — see [`docs/PHASE2.md`](docs/PHASE2.md). Phase 3 in progress: A&R pipeline, Analytics basics, Sync licensing — see [`docs/PHASE3.md`](docs/PHASE3.md). Stripe Connect, DDEX, Listmonk, and publishing/contracts depth remain deferred.
+**Phase 1 is complete.** Phase 2 unblocked scope is complete (July 2026) — see [`docs/PHASE2.md`](docs/PHASE2.md). Phase 3 in progress: A&R, analytics, sync, marketing — see [`docs/PHASE3.md`](docs/PHASE3.md). Stripe Connect, DDEX, Listmonk, and publishing/contracts depth remain deferred.
 
 See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 
@@ -181,7 +181,7 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 | **Data export (Gap 6 — Phase 1)** | `GET /api/export/?export_format=json|csv` — role-scoped export. Finance/Manager/Admin get full label data + audit log; Artist gets own data; A&R gets catalog only. Portal at `/export`. |
 | **Audit trail** | `AuditEvent` in `apps/audit/` — immutable log of uploads, parses, consolidation, split finalization, payout issuance, mark-paid. Portal at `/activity`. |
 | **Artist portal (Module 12 — Phase 1 basic)** | Role-aware dashboard (`ArtistDashboard`), scoped nav labels ("My releases", "My payouts"), simplified artist payments view. |
-| **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/pipeline`, `/sync`, `/analytics`, `/splits`, `/royalties`, `/payments`, `/notifications`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
+| **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/pipeline`, `/sync`, `/marketing`, `/analytics`, `/splits`, `/royalties`, `/payments`, `/notifications`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
 | **Marketing site** | Astro static site at `marketing/`. Live at **usegoodfaith.com**. Waitlist deferred (Listmonk); CTAs → pricing and `hello@usegoodfaith.com`. |
 
 ### Phase 2 (complete — deferred items remain)
@@ -202,9 +202,10 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 
 | Shipped | Next / deferred |
 |---|---|
-| **A&R pipeline** (`/api/ar/prospects/`, `/pipeline`) — stages, priority, discovery links, signed-artist link | Marketing, ERP |
+| **A&R pipeline** (`/api/ar/prospects/`, `/pipeline`) — stages, priority, discovery links, signed-artist link | ERP |
 | **Analytics basics** (`/api/analytics/summary/`, `/analytics`) — role-scoped internal dashboards from royalty/catalog/pipeline data | Chartmetric / Soundcharts integrations |
 | **Sync licensing** (`/api/sync/opportunities/`, `/sync`) — pitch-to-license tracker with fee/territory/catalog links | Supervisor marketplace, cue sheets, DISCO |
+| **Marketing campaigns** (`/api/marketing/campaigns/`, `/marketing`) — release/playlist/press promo tracker with smart-link URLs | Built-in smart links, ad automation, Listmonk |
 | | Stripe/DDEX/CWR/Listmonk |
 
 ### Phase 1 end-to-end flow
@@ -220,7 +221,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 ```
 ✅ Phase 1 — Platform, catalog, royalties (10 distributors), splits, payments, export, audit, artist portal
 ✅ Phase 2 — 2FA, ISWC, S3, contracts, publishing scaffold, artist earnings/invites, statement PDFs, in-app notifications
-🟡 Phase 3 — A&R + analytics + sync shipped; marketing / ERP / external analytics next
+🟡 Phase 3 — A&R + analytics + sync + marketing shipped; ERP / external analytics next
 ⬜ Phase 2+/3 deferred — Stripe Connect, DDEX, CWR/society APIs, email/Listmonk, Chartmetric
 ```
 
@@ -239,6 +240,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 | `backend/apps/ar/` | A&R talent pipeline (prospects, stages) |
 | `backend/apps/analytics/` | Role-scoped analytics summary (royalty/catalog/pipeline aggregates) |
 | `backend/apps/sync/` | Sync licensing opportunities (pitch → license) |
+| `backend/apps/marketing/` | Marketing campaigns (release/playlist/press promo) |
 | `frontend/` | Next.js portal (port 3020 in dev) |
 | `marketing/` | Astro marketing site; build output in `marketing/dist/` |
 | `PRODUCT.md` | Marketing-site brand brief |
@@ -274,6 +276,7 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 | `/api/ar/prospects/` | Manager, A&R, Admin — talent pipeline CRUD |
 | `GET /api/analytics/summary/` | Role-scoped analytics — Finance/Manager/Admin label financials (+2FA); Artist own earnings; A&R catalog/pipeline counts only |
 | `/api/sync/opportunities/` | Manager/A&R/Admin write; Finance read; Artist read-own — sync pitch tracker |
+| `/api/marketing/campaigns/` | Manager/A&R/Admin write; Finance read; Artist read-own — promo campaigns |
 | `GET /api/export/?export_format=json\|csv` | Label members — role-scoped data export |
 | `/api/audit/events/` | Finance, Manager, Admin — immutable activity log |
 
@@ -437,6 +440,6 @@ All findings are grounded in fetched, first-party pages. Key sources:
 5. **Pricing constraint:** Never propose a percentage-of-earnings model. Flat fee only.
 6. **Trust is the #1 brand value.** Data portability, transparent pricing, and role-based access are non-negotiable.
 7. When writing product copy, pull from the verbatim Reddit quotes in the Community Intelligence section — they are the exact language the market uses.
-8. **Module build order:** Phase 1 and unblocked Phase 2 complete. Phase 3 in progress (A&R, analytics, sync). Deferred: Stripe Connect, DDEX, publishing/contracts depth, email/Listmonk, Chartmetric/Soundcharts, marketing/ERP. See `docs/PHASE2.md` and `docs/PHASE3.md`.
+8. **Module build order:** Phase 1 and unblocked Phase 2 complete. Phase 3 in progress (A&R, analytics, sync, marketing). Deferred: Stripe Connect, DDEX, publishing/contracts depth, email/Listmonk, Chartmetric/Soundcharts, ERP. See `docs/PHASE2.md` and `docs/PHASE3.md`.
 9. **Marketing vs portal:** `marketing/` is the public pre-launch site (`PRODUCT.md` governs copy/design). `frontend/` is the authenticated label portal. Do not add a waitlist form until Listmonk is configured.
 10. **Financial data access:** A&R must never see royalty statements, runs, splits, or payout data. Artists see **only their own** splits and payouts — never label-wide financial data. Enforce in API queryset filters and portal nav, not just UI hiding.

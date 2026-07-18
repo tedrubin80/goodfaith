@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "apps.ar",
     "apps.analytics",
     "apps.sync",
+    "apps.marketing",
 ]
 
 MIDDLEWARE = [

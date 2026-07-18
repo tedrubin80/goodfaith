@@ -1,6 +1,6 @@
 # Phase 3 — Mid-market ops modules
 
-Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 security/scaffolds. Shipped so far: **A&R pipeline** (Module 11), **Analytics & Reporting basics** (Module 15 — internal dashboards), and **Sync Licensing** (Module 10).
+Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 security/scaffolds. Shipped so far: **A&R pipeline** (Module 11), **Analytics & Reporting basics** (Module 15), **Sync Licensing** (Module 10), and **Marketing campaigns** (Module 13).
 
 ## Why A&R first
 
@@ -137,12 +137,57 @@ Pitch-to-license opportunity tracker (Module 10) without DISCO/Synchtank lock-in
 
 ---
 
+## Shipped — Marketing campaigns (July 2026)
+
+Release and promo campaign tracker (Module 13). Stores smart-link URLs, channels, goals, and date windows without building ad/DSP integrations or a link shortener.
+
+### Data model
+
+`MarketingCampaign` on a label with:
+
+| Field | Purpose |
+|---|---|
+| `status` | draft → planned → active → completed / cancelled |
+| `campaign_type` | release / playlist / press / social / ads / other |
+| Catalog links | optional `artist`, `release` |
+| Window | `start_date` / `end_date` |
+| `smart_link_url` | External Linkfire / Feature.fm / etc. |
+| `channels` / `goals` | Free-text plan |
+
+### RBAC (Gap 5)
+
+| Role | Access |
+|---|---|
+| Manager / A&R / Admin | Full CRUD |
+| Finance | Read-only |
+| Artist | Own campaigns only (linked artist or release primary artist) |
+
+### API
+
+| Endpoint | Notes |
+|---|---|
+| `GET/POST /api/marketing/campaigns/` | List / create |
+| `GET/PATCH/DELETE /api/marketing/campaigns/{id}/` | Detail |
+| Query `?status=` / `?campaign_type=` | Optional filters |
+
+### Portal
+
+`/marketing` — status filters, campaign table, create/edit form. Nav **Marketing** / **My campaigns**.
+
+### Not in this starter
+
+- Built-in smart link generation / click analytics
+- Social scheduler or Meta/TikTok ad automation
+- Email list / Listmonk campaigns
+- Playlist feature alerts from DSP APIs
+
+---
+
 ## Remaining Phase 3+
 
 | Module | Status |
 |---|---|
 | Analytics & Reporting (external integrations) | Deferred — Chartmetric / Soundcharts |
-| Marketing & Promotion | Deferred |
 | Communication & Collaboration | Deferred (in-app notifications already in Phase 2) |
 | Financial Accounting & ERP | Deferred |
 | Stripe Connect / DDEX / CWR / Listmonk | Still deferred from Phase 2+ |

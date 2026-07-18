@@ -29,7 +29,10 @@ type BadgeStatus =
   | "pitched"
   | "shortlisted"
   | "cleared"
-  | "licensed";
+  | "licensed"
+  | "planned"
+  | "completed"
+  | "cancelled";
 
 const STYLES: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -61,6 +64,8 @@ const STYLES: Record<string, string> = {
   shortlisted: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
   cleared: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
   licensed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  planned: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  completed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
 };
 
 export function StatusBadge({

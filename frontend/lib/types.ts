@@ -589,3 +589,61 @@ export const SYNC_MEDIA_TYPES: { value: SyncMediaType; label: string }[] = [
   { value: "social", label: "Social / digital" },
   { value: "other", label: "Other" },
 ];
+
+export type CampaignStatus =
+  | "draft"
+  | "planned"
+  | "active"
+  | "completed"
+  | "cancelled";
+
+export type CampaignType =
+  | "release"
+  | "playlist"
+  | "press"
+  | "social"
+  | "ads"
+  | "other";
+
+export type MarketingCampaign = {
+  id: number;
+  label: number;
+  title: string;
+  status: CampaignStatus;
+  status_display: string;
+  campaign_type: CampaignType;
+  campaign_type_display: string;
+  artist: number | null;
+  artist_name: string;
+  release: number | null;
+  release_title: string;
+  start_date: string | null;
+  end_date: string | null;
+  smart_link_url: string;
+  channels: string;
+  goals: string;
+  notes: string;
+  assigned_to: number | null;
+  assigned_to_username: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const CAMPAIGN_STATUSES: { value: CampaignStatus; label: string }[] = [
+  { value: "draft", label: "Draft" },
+  { value: "planned", label: "Planned" },
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+export const CAMPAIGN_TYPES: { value: CampaignType; label: string }[] = [
+  { value: "release", label: "Release campaign" },
+  { value: "playlist", label: "Playlist pitch" },
+  { value: "press", label: "Press / PR" },
+  { value: "social", label: "Social" },
+  { value: "ads", label: "Paid ads" },
+  { value: "other", label: "Other" },
+];
