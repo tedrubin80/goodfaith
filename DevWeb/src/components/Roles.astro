@@ -1,0 +1,74 @@
+---
+const roles = [
+  { role: 'Artist', blurb: 'Own releases, earnings, payouts, and campaigns — never label-wide books.' },
+  { role: 'Manager', blurb: 'Full ops: catalog, royalties, contracts, pipeline, and export.' },
+  { role: 'Finance', blurb: 'Statements, runs, payouts, activity log, and recoupment.' },
+  { role: 'A&R', blurb: 'Talent pipeline and catalog — deliberately no royalty data.' },
+];
+---
+
+<section class="section roles" id="roles">
+  <div class="container">
+    <div class="roles__intro reveal" data-reveal>
+      <h2>Gap 5, built in</h2>
+      <p>
+        Shared Sheets and Notion expose splits to people who should never see
+        them. Good Faith scopes every API queryset by role.
+      </p>
+    </div>
+    <div class="roles__grid">
+      {
+        roles.map((r) => (
+          <article class="roles__card reveal" data-reveal>
+            <h3>{r.role}</h3>
+            <p>{r.blurb}</p>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .roles__intro {
+    max-width: 38rem;
+    margin-bottom: var(--space-xl);
+  }
+
+  .roles__intro h2 {
+    font-size: var(--text-h2);
+  }
+
+  .roles__intro p {
+    margin-top: var(--space-sm);
+    color: var(--color-muted);
+  }
+
+  .roles__grid {
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .roles__card h3 {
+    font-size: var(--text-h3);
+  }
+
+  .roles__card p {
+    margin-top: var(--space-2xs);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  @media (max-width: 56rem) {
+    .roles__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 32rem) {
+    .roles__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

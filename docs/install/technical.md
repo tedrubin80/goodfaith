@@ -66,7 +66,7 @@ python manage.py seed_label --label-name "…" --manager-username … --manager-
 |---|---|
 | `backend/` | API, Celery, migrations |
 | `frontend/` | Portal + install homepage |
-| `marketing/` | Optional static project site (Astro) |
+| `DevWeb/` | Developer showcase site (Astro; optional) |
 | `docs/install/` | Install guides |
 | `frontend/vercel.json` | Vercel template |
 | `railway.toml` | Railway API template |

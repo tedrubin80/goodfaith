@@ -1,0 +1,100 @@
+---
+const features = [
+  {
+    name: 'Royalty hub',
+    detail:
+      'Ingest DistroKid, TuneCore, CD Baby, Symphonic, ONErpm, RouteNote, TooLost, FUGA, Vydia, and The Orchard into one normalized run.',
+  },
+  {
+    name: 'Splits & payouts',
+    detail: 'Finalize 100% split sheets, consolidate statements, mark paid, and export ACH CSV — no earnings tax.',
+  },
+  {
+    name: 'Catalog & DAM',
+    detail: 'Artists, releases, tracks with ISRC/ISWC/UPC, plus masters and artwork asset uploads.',
+  },
+  {
+    name: 'Contracts & publishing',
+    detail: 'Deal repository with obligations; musical works, writer shares, and PRO registration history.',
+  },
+  {
+    name: 'A&R & sync',
+    detail: 'Talent pipeline without financial leakage; sync pitch-to-license tracker with fees and territories.',
+  },
+  {
+    name: 'Ops modules',
+    detail: 'Marketing campaigns, analytics dashboards, workflow tasks, DSP delivery calendar, ERP/recoupment.',
+  },
+  {
+    name: 'Role-based portals',
+    detail: 'Artist, Manager, Finance, and A&R views enforced in the API — not just hidden UI chrome.',
+  },
+  {
+    name: 'Trust defaults',
+    detail: 'Mandatory 2FA for financial roles, immutable audit log, full JSON/CSV export anytime.',
+  },
+];
+---
+
+<section class="section features" id="features">
+  <div class="container">
+    <div class="features__intro reveal" data-reveal>
+      <h2>What ships with the install</h2>
+      <p>
+        Built for indie labels with real catalogs and multiple distributors —
+        not a locked distribution service, not an enterprise sales call.
+      </p>
+    </div>
+    <ul class="features__grid">
+      {
+        features.map((f) => (
+          <li class="features__item reveal" data-reveal>
+            <h3>{f.name}</h3>
+            <p>{f.detail}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .features__intro {
+    max-width: 40rem;
+    margin-bottom: var(--space-xl);
+  }
+
+  .features__intro h2 {
+    font-size: var(--text-h2);
+  }
+
+  .features__intro p {
+    margin-top: var(--space-sm);
+    color: var(--color-muted);
+    font-size: var(--text-lead);
+  }
+
+  .features__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-lg);
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  }
+
+  .features__item {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-md);
+  }
+
+  .features__item h3 {
+    font-size: var(--text-h3);
+  }
+
+  .features__item p {
+    margin-top: var(--space-2xs);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+</style>

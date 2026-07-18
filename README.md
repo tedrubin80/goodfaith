@@ -75,14 +75,13 @@ docker compose exec backend python manage.py seed_label \
 ```
 backend/          Django + DRF API, Celery, migrations
 frontend/         Next.js portal (install homepage at /)
-marketing/        Optional Astro project site
+DevWeb/           Developer showcase site (Astro; extractable to its own repo)
 docs/install/     Install & deploy guides
 docs/PHASE*.md    Product phase notes
 railway.toml      Railway API template
 railway.worker.toml
 frontend/vercel.json
 ```
-
 ---
 
 ## Status

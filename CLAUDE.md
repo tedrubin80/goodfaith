@@ -149,14 +149,14 @@ All 20 modules are documented in detail in `docs/research/record_label_software_
 | Database | **PostgreSQL** | Transactional integrity for money movement (royalties, splits, payouts); native JSON columns for flexible per-distributor raw-statement storage alongside a normalized relational schema. |
 | Async jobs | **Celery + Redis** | Statement parsing, PRO registration polling, and report generation run as background jobs rather than blocking requests. |
 | Frontend (portal) | **React + Next.js 16 (TypeScript)** | Artist / Manager / Finance / A&R portals as a single codebase with role-based views (Gap 5). |
-| Marketing site | **Astro (static)** | Pre-launch credibility page at usegoodfaith.com — separate from the authenticated portal. See `PRODUCT.md` for brand/design brief. |
+| Developer showcase | **Astro (static) in `DevWeb/`** | Optional public project site (features, stack, install CTAs). Extractable to its own repo. See `PRODUCT.md` for brand/design brief. |
 | File / asset storage | **Local `MEDIA_ROOT` in dev; S3-compatible object storage in prod** (AWS S3 or Cloudflare R2) | Royalty statement uploads work locally today; production DAM and statement storage should move to signed-URL object storage. |
 | Payments (artist royalties) | **Mark-paid + ACH CSV** | Manual mark-paid and ACH CSV batch export. **No SaaS subscription billing** (Stripe/PayPal plans out of scope). |
 | Email | Optional self-hosted SMTP | No Listmonk waitlist / SaaS email capture. |
 
 **Trade-off accepted:** a Node/TypeScript full-stack (Next.js + Prisma) would give one language end-to-end and faster portal iteration, but was passed over because the distributor-statement-normalization moat benefits more from Python's data ecosystem than the frontend benefits from stack unification.
 
-**Deployment:** Docker Compose for local dev (`docker compose up`). Production stack via `docker-compose.prod.yml` (Gunicorn + Next.js prod). CI via GitHub Actions (`.github/workflows/ci.yml`). Marketing site deployed statically behind nginx + Let's Encrypt at usegoodfaith.com (`marketing/deploy/nginx/`).
+**Deployment:** Docker Compose for local dev (`docker compose up`). Production stack via `docker-compose.prod.yml` (Gunicorn + Next.js prod). CI via GitHub Actions (`.github/workflows/ci.yml`). Optional `DevWeb/` showcase deploys as static (e.g. Vercel with root `DevWeb/`).
 
 ---
 
@@ -181,8 +181,8 @@ See [`docs/PHASE1.md`](docs/PHASE1.md) for onboarding and walkthrough.
 | **Data export (Gap 6 — Phase 1)** | `GET /api/export/?export_format=json|csv` — role-scoped export. Finance/Manager/Admin get full label data + audit log; Artist gets own data; A&R gets catalog only. Portal at `/export`. |
 | **Audit trail** | `AuditEvent` in `apps/audit/` — immutable log of uploads, parses, consolidation, split finalization, payout issuance, mark-paid. Portal at `/activity`. |
 | **Artist portal (Module 12 — Phase 1 basic)** | Role-aware dashboard (`ArtistDashboard`), scoped nav labels ("My releases", "My payouts"), simplified artist payments view. |
-| **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/pipeline`, `/sync`, `/marketing`, `/analytics`, `/splits`, `/royalties`, `/payments`, `/notifications`, `/activity`, `/export`. Brand OKLCH tokens aligned with marketing site. |
-| **Marketing / project site** | Astro static site at `marketing/`. Optional; not a SaaS funnel. Portal `/` is the install homepage. |
+| **Portal UI** | Next.js 16 at `frontend/` — `/dashboard`, `/catalog`, `/pipeline`, `/sync`, `/marketing`, `/analytics`, `/splits`, `/royalties`, `/payments`, `/notifications`, `/activity`, `/export`. Brand tokens in `PRODUCT.md` / portal CSS. |
+| **Developer showcase** | Astro static site at `DevWeb/`. Optional public face for the OSS project. Portal `/` is the install homepage. |
 
 ### Phase 2 (complete — deferred items remain)
 
@@ -242,8 +242,8 @@ seed_label → catalog (artists/releases/tracks) → splits (finalize)
 | `backend/apps/sync/` | Sync licensing opportunities (pitch → license) |
 | `backend/apps/marketing/` | Marketing campaigns (release/playlist/press promo) |
 | `frontend/` | Next.js portal (port 3020 in dev) |
-| `marketing/` | Astro marketing site; build output in `marketing/dist/` |
-| `PRODUCT.md` | Marketing-site brand brief |
+| `DevWeb/` | Optional Astro developer showcase (extractable) |
+| `PRODUCT.md` | Brand / design brief for portal + DevWeb |
 | `docker-compose.yml` | Local dev: Postgres :5434, Redis :6380, backend :8020, frontend :3020 |
 | `docker-compose.prod.yml` | Production: Gunicorn, Next.js prod, persistent media volume |
 | `docs/PHASE1.md` | Phase 1 onboarding, walkthrough, production deploy |
@@ -414,12 +414,12 @@ All findings are grounded in fetched, first-party pages. Key sources:
 | `docs/research/competitor_reddit_research.md` | 24 competitor profiles + 9 Reddit threads + cross-cutting themes |
 | `docs/research/label_management_software_master_report.md` | Full master synthesis (Markdown) |
 | `docs/research/label_management_software_report.pdf` | 31-page professional PDF deliverable |
-| `PRODUCT.md` | Marketing-site brand brief — audience, trust tone, design principles, anti-references |
+| `PRODUCT.md` | Brand brief — audience, trust tone, design principles, anti-references |
 | `docs/PHASE1.md` | Phase 1 complete — onboarding, walkthrough, production deploy |
 | `docs/PHASE2.md` | Phase 2 complete — 2FA, scaffolds, PDFs, notifications |
 | `docs/PHASE3.md` | Phase 3 — A&R pipeline + analytics basics |
 | `README.md` | Repo quick start, Phase 1 module status, CI |
-| `marketing/` | Astro static site for usegoodfaith.com |
+| `DevWeb/` | Optional Astro developer showcase |
 | `CLAUDE.md` | This file — project context for AI agents and collaborators |
 
 ---
@@ -434,5 +434,5 @@ All findings are grounded in fetched, first-party pages. Key sources:
 6. **Trust is the #1 brand value.** Data portability, role-based access, and self-host control are non-negotiable.
 7. When writing product copy, pull from the verbatim Reddit quotes in the Community Intelligence section — they are the exact language the market uses.
 8. **Module build order:** Phase 1 and unblocked Phase 2 complete. Phase 3 in progress. Deferred integrations: DDEX, CWR, Chartmetric/Soundcharts. See `docs/PHASE2.md`, `docs/PHASE3.md`, and `docs/install/`.
-9. **Portal vs project site:** `frontend/` `/` is the install homepage. `marketing/` is optional. Deploy templates: `frontend/vercel.json`, `railway.toml`.
+9. **Portal vs project site:** `frontend/` `/` is the install homepage. `DevWeb/` is the optional public showcase. Deploy templates: `frontend/vercel.json`, `railway.toml`.
 10. **Financial data access:** A&R must never see royalty statements, runs, splits, or payout data. Artists see **only their own** splits and payouts — never label-wide financial data. Enforce in API queryset filters and portal nav, not just UI hiding.

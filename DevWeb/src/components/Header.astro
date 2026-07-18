@@ -1,0 +1,120 @@
+---
+const github = 'https://github.com/tedrubin80/goodfaith';
+---
+
+<header class="site-header">
+  <div class="site-header__inner container">
+    <a href="#top" class="wordmark">
+      <span class="wordmark__name">Good Faith</span>
+      <span class="wordmark__sub">Record Management</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#stack">Stack</a>
+      <a href="#roles">Roles</a>
+      <a href="#install">Install</a>
+    </nav>
+    <div class="site-header__actions">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        Theme
+      </button>
+      <a href={github} class="button button--primary">GitHub</a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    background: color-mix(in oklch, var(--color-bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    padding-block: var(--space-sm);
+  }
+
+  .wordmark {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    margin-right: auto;
+    line-height: 1.1;
+  }
+
+  .wordmark__name {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+
+  .wordmark__sub {
+    font-size: 0.7rem;
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
+  .site-nav {
+    display: flex;
+    gap: var(--space-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
+  .site-nav a {
+    text-decoration: none;
+    color: var(--color-muted);
+  }
+
+  .site-nav a:hover {
+    color: var(--color-ink);
+  }
+
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .theme-toggle {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    border-radius: var(--radius-md);
+    padding: 0.45rem 0.75rem;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  @media (max-width: 48rem) {
+    .site-nav {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  const root = document.documentElement;
+
+  function current(): 'light' | 'dark' {
+    const attr = root.getAttribute('data-theme');
+    if (attr === 'light' || attr === 'dark') return attr;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  toggle?.addEventListener('click', () => {
+    const next = current() === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try {
+      localStorage.setItem('gfrm-devweb-theme', next);
+    } catch {}
+  });
+</script>

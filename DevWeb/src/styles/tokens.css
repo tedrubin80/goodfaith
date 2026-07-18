@@ -1,0 +1,75 @@
+:root {
+  color-scheme: light;
+
+  --color-bg: oklch(0.985 0.004 220);
+  --color-surface: oklch(0.97 0.008 220);
+  --color-surface-2: oklch(0.935 0.012 220);
+  --color-border: oklch(0.86 0.014 220);
+  --color-ink: oklch(0.22 0.02 230);
+  --color-muted: oklch(0.45 0.02 230);
+
+  --color-primary-fill: oklch(0.42 0.09 195);
+  --color-primary-fill-hover: oklch(0.36 0.09 195);
+  --color-primary-text: oklch(0.38 0.09 195);
+
+  --color-accent-fill: oklch(0.72 0.14 75);
+  --color-accent-text: oklch(0.48 0.12 70);
+
+  --color-on-fill: oklch(0.99 0.005 220);
+
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-sm: 1rem;
+  --space-md: 1.5rem;
+  --space-lg: 2rem;
+  --space-xl: 3rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-body: 1.0625rem;
+  --text-lead: clamp(1.125rem, 1rem + 0.45vw, 1.3rem);
+  --text-h3: clamp(1.2rem, 1.05rem + 0.6vw, 1.4rem);
+  --text-h2: clamp(1.7rem, 1.3rem + 1.6vw, 2.4rem);
+  --text-h1: clamp(2.6rem, 1.7rem + 3.5vw, 4.5rem);
+
+  --leading-tight: 1.1;
+  --leading-body: 1.65;
+  --tracking-display: -0.03em;
+  --radius-md: 0.5rem;
+  --content-max: 72rem;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-entrance: 800ms;
+  --z-sticky: 20;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: oklch(0.16 0.015 230);
+  --color-surface: oklch(0.2 0.018 230);
+  --color-surface-2: oklch(0.25 0.02 230);
+  --color-border: oklch(0.35 0.02 230);
+  --color-ink: oklch(0.95 0.01 220);
+  --color-muted: oklch(0.72 0.015 220);
+  --color-primary-fill: oklch(0.58 0.1 195);
+  --color-primary-fill-hover: oklch(0.52 0.1 195);
+  --color-primary-text: oklch(0.72 0.08 195);
+  --color-accent-text: oklch(0.82 0.1 75);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --color-bg: oklch(0.16 0.015 230);
+    --color-surface: oklch(0.2 0.018 230);
+    --color-surface-2: oklch(0.25 0.02 230);
+    --color-border: oklch(0.35 0.02 230);
+    --color-ink: oklch(0.95 0.01 220);
+    --color-muted: oklch(0.72 0.015 220);
+    --color-primary-fill: oklch(0.58 0.1 195);
+    --color-primary-fill-hover: oklch(0.52 0.1 195);
+    --color-primary-text: oklch(0.72 0.08 195);
+    --color-accent-text: oklch(0.82 0.1 75);
+  }
+}

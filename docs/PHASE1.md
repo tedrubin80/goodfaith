@@ -59,6 +59,4 @@ See [`docs/PHASE2.md`](PHASE2.md) for what shipped (2FA, ISWC, S3 storage) vs. s
 
 - Stripe Connect automated disbursement *(payment model TBD)*
 - DDEX ingestion, publishing admin, contracts
-- Listmonk waitlist on marketing site
-
 See `CLAUDE.md` for full module roadmap.
