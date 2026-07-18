@@ -182,3 +182,11 @@ export function canManagePublishing(role: User["role"]): boolean {
 export function canViewRoster(role: User["role"]): boolean {
   return role !== "artist";
 }
+
+export function canAccessARPipeline(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}
+
+export function canManageARPipeline(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}

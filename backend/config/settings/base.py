@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.contracts",
     "apps.publishing",
     "apps.notifications",
+    "apps.ar",
 ]
 
 MIDDLEWARE = [

@@ -174,6 +174,63 @@ export const CONTRACT_STATUSES: { value: ContractStatus; label: string }[] = [
   { value: "terminated", label: "Terminated" },
 ];
 
+export type PipelineStage =
+  | "lead"
+  | "researching"
+  | "contacting"
+  | "meeting"
+  | "negotiating"
+  | "signed"
+  | "passed"
+  | "on_hold";
+
+export type ProspectPriority = "low" | "medium" | "high" | "hot";
+
+export type Prospect = {
+  id: number;
+  label: number;
+  name: string;
+  stage: PipelineStage;
+  stage_display: string;
+  priority: ProspectPriority;
+  priority_display: string;
+  genre: string;
+  location: string;
+  contact_email: string;
+  contact_phone: string;
+  spotify_url: string;
+  instagram_url: string;
+  other_links: string;
+  source: string;
+  notes: string;
+  assigned_to: number | null;
+  assigned_to_username: string;
+  signed_artist: number | null;
+  signed_artist_name: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const PIPELINE_STAGES: { value: PipelineStage; label: string }[] = [
+  { value: "lead", label: "Lead" },
+  { value: "researching", label: "Researching" },
+  { value: "contacting", label: "Contacting" },
+  { value: "meeting", label: "Meeting" },
+  { value: "negotiating", label: "Negotiating" },
+  { value: "signed", label: "Signed" },
+  { value: "passed", label: "Passed" },
+  { value: "on_hold", label: "On hold" },
+];
+
+export const PROSPECT_PRIORITIES: { value: ProspectPriority; label: string }[] = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "hot", label: "Hot" },
+];
+
 export type ProSociety = "ascap" | "bmi" | "sesac" | "socan" | "other" | "";
 
 export type RegistrationStatus = "draft" | "ready" | "submitted" | "registered";

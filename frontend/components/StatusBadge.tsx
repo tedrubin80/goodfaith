@@ -16,7 +16,15 @@ type BadgeStatus =
   | "terminated"
   | "ready"
   | "submitted"
-  | "registered";
+  | "registered"
+  | "lead"
+  | "researching"
+  | "contacting"
+  | "meeting"
+  | "negotiating"
+  | "signed"
+  | "passed"
+  | "on_hold";
 
 const STYLES: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -35,6 +43,14 @@ const STYLES: Record<string, string> = {
   finalized: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
   submitted: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
   registered: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  lead: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  researching: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  contacting: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  meeting: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  negotiating: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  signed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
+  passed: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  on_hold: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
 };
 
 export function StatusBadge({
