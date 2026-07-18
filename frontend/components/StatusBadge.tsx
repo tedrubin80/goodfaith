@@ -24,7 +24,12 @@ type BadgeStatus =
   | "negotiating"
   | "signed"
   | "passed"
-  | "on_hold";
+  | "on_hold"
+  | "inquiry"
+  | "pitched"
+  | "shortlisted"
+  | "cleared"
+  | "licensed";
 
 const STYLES: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
@@ -51,6 +56,11 @@ const STYLES: Record<string, string> = {
   signed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
   passed: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
   on_hold: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  inquiry: "bg-[var(--color-surface-2)] text-[var(--color-muted)]",
+  pitched: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  shortlisted: "bg-amber-500/10 text-amber-800 dark:text-amber-200",
+  cleared: "bg-blue-500/10 text-blue-800 dark:text-blue-200",
+  licensed: "bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
 };
 
 export function StatusBadge({

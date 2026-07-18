@@ -200,3 +200,17 @@ export function canAccessAnalytics(role: User["role"]): boolean {
     role === "admin"
   );
 }
+
+export function canAccessSync(role: User["role"]): boolean {
+  return (
+    role === "manager" ||
+    role === "finance" ||
+    role === "ar" ||
+    role === "artist" ||
+    role === "admin"
+  );
+}
+
+export function canManageSync(role: User["role"]): boolean {
+  return role === "manager" || role === "ar" || role === "admin";
+}

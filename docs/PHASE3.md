@@ -1,6 +1,6 @@
 # Phase 3 — Mid-market ops modules
 
-Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 security/scaffolds. Shipped so far: **A&R pipeline** (Module 11) and **Analytics & Reporting basics** (Module 15 — internal dashboards).
+Phase 3 opens the mid-market ops modules after Phase 1 royalties and Phase 2 security/scaffolds. Shipped so far: **A&R pipeline** (Module 11), **Analytics & Reporting basics** (Module 15 — internal dashboards), and **Sync Licensing** (Module 10).
 
 ## Why A&R first
 
@@ -90,12 +90,58 @@ Internal dashboards aggregated from existing royalty runs, statements, payouts, 
 
 ---
 
+## Shipped — Sync Licensing (July 2026)
+
+Pitch-to-license opportunity tracker (Module 10) without DISCO/Synchtank lock-in. Links catalog tracks/releases/artists and optional sync contracts; records fee, territory, exclusivity, and supervisor contacts.
+
+### Data model
+
+`SyncOpportunity` on a label with:
+
+| Field | Purpose |
+|---|---|
+| `status` | inquiry → pitched → shortlisted → cleared → licensed / passed / on_hold |
+| `media_type` | film / tv / ad / trailer / game / social / other |
+| Client + supervisor | studio/brand, supervisor name/email |
+| Deal terms | fee, currency, territory, exclusivity, term notes |
+| Catalog links | optional `track`, `release`, `artist` |
+| `contract` | optional link to a sync-type `Contract` when the deal closes |
+| `pitched_at` / `licensed_at` | milestone dates |
+
+### RBAC (Gap 5)
+
+| Role | Access |
+|---|---|
+| Manager / A&R / Admin | Full CRUD |
+| Finance | Read-only (fees for accounting) |
+| Artist | Own opportunities only (linked artist or release primary artist) |
+
+### API
+
+| Endpoint | Notes |
+|---|---|
+| `GET/POST /api/sync/opportunities/` | List / create |
+| `GET/PATCH/DELETE /api/sync/opportunities/{id}/` | Detail |
+| Query `?status=` / `?media_type=` | Optional filters |
+
+### Portal
+
+`/sync` — status filter chips, opportunity table, create/edit form. Nav **Sync** / **My sync** for all label roles with access.
+
+### Not in this starter
+
+- Supervisor marketplace / MultiDISCO-style discovery
+- Pitch playlist sharing + engagement analytics
+- Cue sheet automation
+- DISCO / Synchtank integrations
+
+---
+
 ## Remaining Phase 3+
 
 | Module | Status |
 |---|---|
 | Analytics & Reporting (external integrations) | Deferred — Chartmetric / Soundcharts |
-| Sync Licensing Management | Deferred |
 | Marketing & Promotion | Deferred |
 | Communication & Collaboration | Deferred (in-app notifications already in Phase 2) |
 | Financial Accounting & ERP | Deferred |

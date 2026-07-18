@@ -17,6 +17,7 @@ urlpatterns = [
     path("api/notifications/", include("apps.notifications.urls")),
     path("api/ar/", include("apps.ar.urls")),
     path("api/analytics/", include("apps.analytics.urls")),
+    path("api/sync/", include("apps.sync.urls")),
 ]
 
 if settings.DEBUG:

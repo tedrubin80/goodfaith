@@ -516,3 +516,76 @@ export type AnalyticsSummary =
   | LabelAnalyticsSummary
   | ArtistAnalyticsSummary
   | OpsAnalyticsSummary;
+
+export type SyncStatus =
+  | "inquiry"
+  | "pitched"
+  | "shortlisted"
+  | "cleared"
+  | "licensed"
+  | "passed"
+  | "on_hold";
+
+export type SyncMediaType =
+  | "film"
+  | "tv"
+  | "ad"
+  | "trailer"
+  | "game"
+  | "social"
+  | "other";
+
+export type SyncOpportunity = {
+  id: number;
+  label: number;
+  title: string;
+  status: SyncStatus;
+  status_display: string;
+  media_type: SyncMediaType;
+  media_type_display: string;
+  client_name: string;
+  supervisor_name: string;
+  supervisor_email: string;
+  territory: string;
+  exclusivity: string;
+  fee_amount: string | null;
+  currency: string;
+  term_notes: string;
+  track: number | null;
+  track_title: string;
+  release: number | null;
+  release_title: string;
+  artist: number | null;
+  artist_name: string;
+  contract: number | null;
+  contract_title: string;
+  pitched_at: string | null;
+  licensed_at: string | null;
+  notes: string;
+  assigned_to: number | null;
+  assigned_to_username: string;
+  created_by: number | null;
+  created_by_username: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export const SYNC_STATUSES: { value: SyncStatus; label: string }[] = [
+  { value: "inquiry", label: "Inquiry" },
+  { value: "pitched", label: "Pitched" },
+  { value: "shortlisted", label: "Shortlisted" },
+  { value: "cleared", label: "Cleared" },
+  { value: "licensed", label: "Licensed" },
+  { value: "passed", label: "Passed" },
+  { value: "on_hold", label: "On hold" },
+];
+
+export const SYNC_MEDIA_TYPES: { value: SyncMediaType; label: string }[] = [
+  { value: "film", label: "Film" },
+  { value: "tv", label: "TV" },
+  { value: "ad", label: "Advertising" },
+  { value: "trailer", label: "Trailer" },
+  { value: "game", label: "Game" },
+  { value: "social", label: "Social / digital" },
+  { value: "other", label: "Other" },
+];

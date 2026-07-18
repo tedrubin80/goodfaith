@@ -72,7 +72,7 @@ Then sign in at http://localhost:3020/login.
 
 **Phase 2:** Unblocked scope complete (2FA, ISWC, S3/R2, contracts + publishing scaffolds, artist earnings/invites, statement PDFs, in-app notifications). Stripe Connect / DDEX / Listmonk / CWR remain deferred — see `docs/PHASE2.md`.
 
-**Phase 3:** A&R talent pipeline (`/pipeline`, `/api/ar/prospects/`) and Analytics basics (`/analytics`, `/api/analytics/summary/`) shipped — see `docs/PHASE3.md`.
+**Phase 3:** A&R talent pipeline (`/pipeline`), Analytics basics (`/analytics`), and Sync licensing (`/sync`, `/api/sync/opportunities/`) shipped — see `docs/PHASE3.md`.
 
 ## Production
 

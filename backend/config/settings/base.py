@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.ar",
     "apps.analytics",
+    "apps.sync",
 ]
 
 MIDDLEWARE = [
