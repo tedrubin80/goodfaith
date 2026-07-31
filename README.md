@@ -108,7 +108,3 @@ cd frontend && npm run build
 ```
 
 ---
-
-## License
-
-[MIT](./LICENSE) © 2026 Ted Rubin
