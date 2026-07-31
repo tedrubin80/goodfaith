@@ -4,8 +4,6 @@
 
 Consolidate royalty statements from every distributor you already use. Run splits and payouts with role-based portals. Export everything anytime. **No cut of your earnings. No SaaS subscription billing.**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](./LICENSE)
-[![CI](https://github.com/tedrubin80/goodfaith/actions/workflows/ci.yml/badge.svg)](https://github.com/tedrubin80/goodfaith/actions/workflows/ci.yml)
 
 ---
 
