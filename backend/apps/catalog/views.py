@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model, password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import QuerySet
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ from .serializers import (
     ReleaseSerializer,
     TrackSerializer,
     TrackArtistSerializer,
+    TrackAssetSerializer,
 )
 User = get_user_model()
 
@@ -96,7 +98,7 @@ class ReleaseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self) -> QuerySet[Release]:
         qs = Release.objects.filter(label_id__in=_user_label_ids(self.request.user)).prefetch_related(
-            "tracks"
+            "tracks__identifiers", "tracks__artists"
         )
         user = self.request.user
         if user.role == Role.ARTIST and hasattr(user, "artist_profile"):
@@ -109,11 +111,41 @@ class TrackViewSet(viewsets.ModelViewSet):
     permission_classes = [CanManageCatalog]
 
     def get_queryset(self) -> QuerySet[Track]:
-        qs = Track.objects.filter(release__label_id__in=_user_label_ids(self.request.user))
+        qs = Track.objects.filter(release__label_id__in=_user_label_ids(self.request.user)).select_related(
+            "release"
+        ).prefetch_related("identifiers", "artists")
         user = self.request.user
-        if user.role == Role.ARTIST and hasattr(user, "artist_profile"):
+        if user.role == Role.ARTIST:
+            if not hasattr(user, "artist_profile"):
+                return qs.none()
             qs = qs.filter(release__primary_artist=user.artist_profile)
         return qs
+
+    @action(detail=True, methods=["get", "post"])
+    def assets(self, request, pk=None):
+        track = self.get_object()
+        if request.method == "GET":
+            return Response(TrackAssetSerializer(
+                track.identifiers.filter(label_id=track.release.label_id), many=True,
+            ).data)
+        serializer = TrackAssetSerializer(data=request.data, context={"track": track})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)
+
+    @action(detail=True, methods=["patch", "delete"], url_path=r"assets/(?P<asset_id>\d+)")
+    def asset_detail(self, request, pk=None, asset_id=None):
+        track = self.get_object()
+        asset = get_object_or_404(track.identifiers, pk=asset_id, label_id=track.release.label_id)
+        if request.method == "DELETE":
+            asset.delete()
+            return Response(status=204)
+        serializer = TrackAssetSerializer(asset, data=request.data, partial=True, context={"track": track})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
 class TrackArtistViewSet(viewsets.ModelViewSet):
     serializer_class = TrackArtistSerializer
     permission_classes = [CanManageCatalog]
