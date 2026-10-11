@@ -102,6 +102,48 @@ class RoyaltyAPITests(TestCase):
         response = self.client.get("/api/royalties/statements/")
         self.assertEqual(response.status_code, 403)
 
+    def test_cannot_upload_statement_to_foreign_label(self):
+        other = Label.objects.create(name="Other Label", slug="other-label")
+        self.client.force_authenticate(user=self.finance)
+        upload = SimpleUploadedFile(
+            "distrokid.csv",
+            b"Sale Month,Store,Title,Artist,ISRC,Quantity,Earnings (USD)\n"
+            b"2026-01,Spotify,T,A,USRC17607839,1,1.00\n",
+            content_type="text/csv",
+        )
+        response = self.client.post(
+            "/api/royalties/statements/",
+            {
+                "label": other.pk,
+                "distributor": Distributor.DISTROKID,
+                "file": upload,
+                "currency": "USD",
+            },
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(RoyaltyStatement.objects.filter(label=other).exists())
+
+    def test_rejects_disallowed_statement_extension(self):
+        self.client.force_authenticate(user=self.finance)
+        upload = SimpleUploadedFile(
+            "malware.exe",
+            b"MZ",
+            content_type="application/octet-stream",
+        )
+        response = self.client.post(
+            "/api/royalties/statements/",
+            {
+                "label": self.label.pk,
+                "distributor": Distributor.DISTROKID,
+                "file": upload,
+                "currency": "USD",
+            },
+            format="multipart",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(RoyaltyStatement.objects.exists())
+
 
 class RoyaltyRunConsolidationTests(TestCase):
     def setUp(self):
@@ -169,7 +211,7 @@ class RoyaltyRunConsolidationTests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201, response.data)
         self.assertEqual(response.data["status"], RoyaltyRunStatus.READY)
         self.assertEqual(Decimal(response.data["total_amount"]), Decimal("10.0000"))
         self.assertEqual(response.data["payout_count"], 2)
@@ -197,6 +239,21 @@ class RoyaltyRunConsolidationTests(TestCase):
                 "name": "Bad Run",
                 "currency": "USD",
                 "statements": [pending.pk],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(RoyaltyRun.objects.exists())
+
+    def test_cannot_create_run_for_foreign_label(self):
+        other = Label.objects.create(name="Foreign Run Label", slug="foreign-run")
+        response = self.client.post(
+            "/api/royalties/runs/",
+            {
+                "label": other.pk,
+                "name": "Cross tenant",
+                "currency": "USD",
+                "statements": [self.statement.pk],
             },
             format="json",
         )

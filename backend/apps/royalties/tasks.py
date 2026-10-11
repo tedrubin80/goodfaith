@@ -44,8 +44,9 @@ def process_statement(statement_id: int) -> None:
         notify_statement_failed(statement)
         return
     except Exception as exc:  # noqa: BLE001 — surface any parse failure on the statement
+        # Keep exception details in the audit log only — not in the API-visible field.
         statement.status = StatementStatus.FAILED
-        statement.error_message = f"Unexpected error while parsing: {exc}"
+        statement.error_message = "Unexpected error while parsing statement."
         statement.save(update_fields=["status", "error_message", "updated_at"])
         log_audit_event(
             label_id=statement.label_id,

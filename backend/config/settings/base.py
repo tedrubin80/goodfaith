@@ -102,7 +102,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "20/min",
+        "two_factor": "20/min",
+    },
 }
+
+# Cap multipart uploads (royalty statements, contracts, DAM).
+DATA_UPLOAD_MAX_MEMORY_SIZE = 26 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 26 * 1024 * 1024
+GFRM_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"

@@ -1,8 +1,14 @@
 from rest_framework import serializers
 
 from apps.catalog.models import Label
+from apps.core.uploads import STATEMENT_EXTENSIONS, validate_uploaded_file
 
 from .models import RoyaltyLineItem, RoyaltyRun, RoyaltyRunPayout, RoyaltyStatement, StatementStatus
+
+
+def _user_label_ids(context: dict) -> set[int]:
+    user = context["request"].user
+    return set(user.label_memberships.values_list("label_id", flat=True))
 
 
 class RoyaltyStatementSerializer(serializers.ModelSerializer):
@@ -33,10 +39,15 @@ class RoyaltyStatementSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id",
+            "label",
+            "distributor",
             "filename",
+            "period_start",
+            "period_end",
             "status",
             "row_count",
             "total_amount",
+            "currency",
             "uploaded_by",
             "error_message",
             "created_at",
@@ -48,6 +59,17 @@ class RoyaltyStatementUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = RoyaltyStatement
         fields = ("label", "distributor", "file", "period_start", "period_end", "currency")
+
+    def validate_label(self, label: Label) -> Label:
+        if label.id not in _user_label_ids(self.context):
+            raise serializers.ValidationError("Label not accessible.")
+        return label
+
+    def validate_file(self, uploaded):
+        return validate_uploaded_file(
+            uploaded,
+            allowed_extensions=STATEMENT_EXTENSIONS,
+        )
 
 
 class RoyaltyLineItemSerializer(serializers.ModelSerializer):
@@ -166,8 +188,11 @@ class RoyaltyRunSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id",
+            "label",
             "status",
+            "statements",
             "total_amount",
+            "currency",
             "consolidation_error",
             "created_at",
             "updated_at",
@@ -183,12 +208,28 @@ class RoyaltyRunSerializer(serializers.ModelSerializer):
 class RoyaltyRunCreateSerializer(serializers.ModelSerializer):
     statements = serializers.PrimaryKeyRelatedField(
         many=True,
-        queryset=RoyaltyStatement.objects.all(),
+        queryset=RoyaltyStatement.objects.none(),
     )
 
     class Meta:
         model = RoyaltyRun
         fields = ("label", "name", "currency", "statements")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        label_ids = _user_label_ids(self.context)
+        qs = RoyaltyStatement.objects.filter(label_id__in=label_ids)
+        field = self.fields["statements"]
+        # many=True wraps PrimaryKeyRelatedField in ManyRelatedField
+        if hasattr(field, "child_relation"):
+            field.child_relation.queryset = qs
+        else:
+            field.queryset = qs
+
+    def validate_label(self, label: Label) -> Label:
+        if label.id not in _user_label_ids(self.context):
+            raise serializers.ValidationError("Label not accessible.")
+        return label
 
     def validate(self, attrs):
         label: Label = attrs["label"]

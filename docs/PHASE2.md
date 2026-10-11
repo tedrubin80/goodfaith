@@ -17,7 +17,7 @@ TOTP authenticator apps (Google Authenticator, 1Password, Authy) with one-time b
 
 | Endpoint | Description |
 |---|---|
-| `POST /api/auth/login/` | Returns `token` or `{ requires_2fa, pending_token }` |
+| `POST /api/auth/login/` | Returns `token` + `user`, or `{ requires_2fa, pending_token }` (no profile until 2FA succeeds) |
 | `POST /api/auth/2fa/verify/` | Complete login with TOTP or backup code |
 | `POST /api/auth/2fa/setup/` | Start enrollment (returns QR + secret) |
 | `POST /api/auth/2fa/confirm/` | Enable 2FA after verifying first code |

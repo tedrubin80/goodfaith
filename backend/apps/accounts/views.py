@@ -1,5 +1,10 @@
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+    throttle_classes,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -12,6 +17,7 @@ from .serializers import (
     TwoFactorVerifySerializer,
     UserSerializer,
 )
+from .throttles import LoginRateThrottle, TwoFactorVerifyRateThrottle
 from .totp import (
     build_provisioning_uri,
     generate_backup_codes,
@@ -28,12 +34,16 @@ from .two_factor import (
 
 
 def _issue_token(user: User) -> Response:
-    token, _ = Token.objects.get_or_create(user=user)
+    # Rotate auth token on every successful login so stolen tokens do not persist.
+    Token.objects.filter(user=user).delete()
+    token = Token.objects.create(user=user)
     return Response({"token": token.key, "user": UserSerializer(user).data})
 
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def login(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -41,11 +51,11 @@ def login(request):
 
     if user.is_2fa_enabled:
         pending_token = create_pending_2fa_token(user.pk)
+        # Do not leak profile details before the second factor succeeds.
         return Response(
             {
                 "requires_2fa": True,
                 "pending_token": pending_token,
-                "user": UserSerializer(user).data,
             }
         )
 
@@ -53,7 +63,9 @@ def login(request):
 
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
+@throttle_classes([TwoFactorVerifyRateThrottle])
 def verify_2fa(request):
     serializer = TwoFactorVerifySerializer(data=request.data)
     serializer.is_valid(raise_exception=True)

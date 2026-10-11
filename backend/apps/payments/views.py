@@ -4,7 +4,10 @@ from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from rest_framework.exceptions import PermissionDenied
+
 from apps.accounts.models import Role
+from apps.accounts.permissions import Mandatory2FAEnforced
 from apps.catalog.views import _user_label_ids
 
 from apps.audit.models import AuditAction
@@ -28,10 +31,12 @@ from .pdf_export import (
 from .services import PayoutGenerationError, generate_payout_batch
 from apps.notifications.services import notify_payout_batch_issued, notify_payout_paid
 
+_ACH_EXPORT_ROLES = {Role.MANAGER, Role.FINANCE, Role.ADMIN}
+
 
 class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PayoutBatchSerializer
-    permission_classes = [CanAccessPayments]
+    permission_classes = [CanAccessPayments, Mandatory2FAEnforced]
 
     def get_queryset(self) -> QuerySet[PayoutBatch]:
         label_ids = _user_label_ids(self.request.user)
@@ -72,6 +77,8 @@ class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["get"])
     def ach_export(self, request, pk=None):
+        if request.user.role not in _ACH_EXPORT_ROLES:
+            raise PermissionDenied("Only finance roles can export ACH payment files.")
         batch = self.get_object()
         content = payout_batch_ach_csv(batch)
         response = HttpResponse(content, content_type="text/csv")
@@ -106,7 +113,7 @@ class PayoutBatchViewSet(viewsets.ReadOnlyModelViewSet):
 
 class PayoutViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PayoutSerializer
-    permission_classes = [CanAccessPayments]
+    permission_classes = [CanAccessPayments, Mandatory2FAEnforced]
 
     def get_queryset(self) -> QuerySet[Payout]:
         label_ids = _user_label_ids(self.request.user)
