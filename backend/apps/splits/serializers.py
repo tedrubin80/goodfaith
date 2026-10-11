@@ -53,6 +53,12 @@ class SplitSheetSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_at", "updated_at")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Track may be set on create only — prevent cross-catalog reassignment on update.
+        if self.instance is not None:
+            self.fields["track"].read_only = True
+
     def get_total_percentage(self, obj: SplitSheet) -> str:
         return str(obj.total_percentage)
 

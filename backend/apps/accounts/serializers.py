@@ -1,6 +1,6 @@
+from django.contrib.auth import authenticate, password_validation
 from django.contrib.auth.hashers import check_password
-from django.contrib.auth import authenticate
-from django.contrib.auth.hashers import check_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .models import User
@@ -102,6 +102,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value: str) -> str:
         if value == self.initial_data.get("current_password"):
             raise serializers.ValidationError("New password must differ from the current password.")
+        user = self.context["request"].user
+        try:
+            password_validation.validate_password(value, user=user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
         return value
 
     def save(self, **kwargs):

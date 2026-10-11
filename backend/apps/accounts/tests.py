@@ -98,6 +98,7 @@ class TwoFactorAuthTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["requires_2fa"])
         self.assertNotIn("token", response.data)
+        self.assertNotIn("user", response.data)
 
         verify = self.client.post(
             "/api/auth/2fa/verify/",

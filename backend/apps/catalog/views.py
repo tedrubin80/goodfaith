@@ -1,4 +1,5 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, password_validation
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import QuerySet
 from rest_framework import serializers, viewsets
@@ -28,6 +29,13 @@ class ArtistInviteSerializer(serializers.Serializer):
         if User.objects.filter(username__iexact=username).exists():
             raise serializers.ValidationError("That username is already taken.")
         return username
+
+    def validate_password(self, value: str) -> str:
+        try:
+            password_validation.validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
+        return value
 
 
 class LabelViewSet(viewsets.ReadOnlyModelViewSet):

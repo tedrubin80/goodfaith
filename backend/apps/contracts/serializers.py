@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.catalog.models import Label
+from apps.core.uploads import CONTRACT_EXTENSIONS, validate_uploaded_file
 
 from .models import Contract, ContractObligation
 
@@ -83,6 +84,12 @@ class ContractSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "created_by", "created_at", "updated_at")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Label is immutable after create (blocks cross-tenant reassignment).
+        if self.instance is not None:
+            self.fields["label"].read_only = True
+
     def get_filename(self, obj: Contract) -> str:
         if obj.file:
             return obj.file.name.rsplit("/", 1)[-1]
@@ -95,6 +102,11 @@ class ContractSerializer(serializers.ModelSerializer):
         if label.id not in _user_label_ids(self.context):
             raise serializers.ValidationError("Label not accessible.")
         return label
+
+    def validate_file(self, uploaded):
+        if uploaded is None or uploaded == "":
+            return uploaded
+        return validate_uploaded_file(uploaded, allowed_extensions=CONTRACT_EXTENSIONS)
 
     def validate(self, attrs: dict) -> dict:
         label = attrs.get("label") or getattr(self.instance, "label", None)

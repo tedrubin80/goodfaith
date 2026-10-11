@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.catalog.models import Label
+from apps.core.uploads import DAM_EXTENSIONS, validate_uploaded_file
 
 from .models import DigitalAsset
 
@@ -45,6 +46,18 @@ class DigitalAssetSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "uploaded_by", "created_at", "updated_at")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Label is immutable after create; file optional on update.
+        if self.instance is not None:
+            self.fields["label"].read_only = True
+            self.fields["file"].required = False
+
+    def validate_file(self, uploaded):
+        if uploaded is None or uploaded == "":
+            return uploaded
+        return validate_uploaded_file(uploaded, allowed_extensions=DAM_EXTENSIONS)
 
     def get_file_url(self, obj: DigitalAsset) -> str:
         if not obj.file:

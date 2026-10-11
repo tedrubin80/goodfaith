@@ -17,7 +17,7 @@ const TOKEN_KEY = "gfrm_token";
 
 export type LoginResult =
   | { kind: "complete"; user: User; token: string }
-  | { kind: "requires_2fa"; pendingToken: string; user: User };
+  | { kind: "requires_2fa"; pendingToken: string };
 
 type AuthContextValue = {
   user: User | null;
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token?: string;
       requires_2fa?: boolean;
       pending_token?: string;
-      user: User;
+      user?: User;
     }>("/api/auth/login/", {
       method: "POST",
       body: JSON.stringify({ username, password }),
@@ -69,11 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return {
         kind: "requires_2fa",
         pendingToken: payload.pending_token,
-        user: payload.user,
       };
     }
 
-    if (!payload.token) {
+    if (!payload.token || !payload.user) {
       throw new Error("Sign in failed.");
     }
 

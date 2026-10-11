@@ -6,6 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Role
+from apps.accounts.test_utils import satisfy_mandatory_2fa
 from apps.catalog.models import Artist, Label, LabelMembership, Release, Track
 from apps.payments.models import Payout, PayoutBatch, PayoutStatus
 from apps.royalties.consolidation import consolidate_run
@@ -24,6 +25,7 @@ class PaymentAPITests(TestCase):
             role=Role.FINANCE,
         )
         LabelMembership.objects.create(user=self.finance, label=self.label)
+        satisfy_mandatory_2fa(self.finance)
         self.artist_user = User.objects.create_user(
             username="payartist",
             password="testpass123",
@@ -141,3 +143,16 @@ class PaymentAPITests(TestCase):
         self.assertIn("participant_name", body)
         self.assertIn("Pay Artist", body)
         self.assertIn("25.0000", body)
+
+    def test_artist_cannot_ach_export(self):
+        self.client.post("/api/payments/batches/from_run/", {"run": self.run.pk}, format="json")
+        batch = PayoutBatch.objects.get()
+        self.client.force_authenticate(user=self.artist_user)
+        response = self.client.get(f"/api/payments/batches/{batch.pk}/ach_export/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_finance_without_2fa_blocked_from_payments(self):
+        self.finance.is_2fa_enabled = False
+        self.finance.save(update_fields=["is_2fa_enabled"])
+        response = self.client.get("/api/payments/batches/")
+        self.assertEqual(response.status_code, 403)

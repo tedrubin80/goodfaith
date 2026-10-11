@@ -192,4 +192,4 @@ Release and promo campaign tracker (Module 13). Stores smart-link URLs, channels
 | Financial Accounting & ERP | Deferred |
 | Stripe Connect / DDEX / CWR / Listmonk | Still deferred from Phase 2+ |
 
-See `CLAUDE.md` for the full roadmap.
+Prioritized next-feature list: [`docs/FEATURE_BACKLOG.md`](./FEATURE_BACKLOG.md).
