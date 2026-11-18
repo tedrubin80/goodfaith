@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { TrackAssets } from "@/components/TrackAssets";
 import { apiFetch } from "@/lib/api";
 import { canManageCatalog, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import {
   buttonPrimaryClassName,
   buttonSecondaryClassName,
@@ -25,12 +26,40 @@ const EMPTY_TRACK = {
   duration_seconds: "",
 };
 
+function releaseFormFromRelease(releaseData: Release) {
+  return {
+    primary_artist: String(releaseData.primary_artist),
+    title: releaseData.title,
+    release_type: releaseData.release_type,
+    upc: releaseData.upc ?? "",
+    release_date: releaseData.release_date ?? "",
+  };
+}
+
+async function requestReleaseDetail(
+  token: string,
+  releaseId: string,
+  canManage: boolean,
+) {
+  const releaseData = await apiFetch<Release>(
+    `/api/catalog/releases/${releaseId}/`,
+    {},
+    token,
+  );
+  let artists: Artist[] = [];
+  if (canManage) {
+    const artistData = await apiFetch<Artist[]>("/api/catalog/artists/", {}, token);
+    artists = artistData.filter((artist) => artist.label === releaseData.label);
+  }
+  return { releaseData, artists };
+}
+
 export default function ReleaseDetailPage() {
   const params = useParams<{ id: string }>();
   const { token, user } = useAuth();
   const [release, setRelease] = useState<Release | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEditRelease, setShowEditRelease] = useState(false);
   const [showAddTrack, setShowAddTrack] = useState(false);
@@ -48,39 +77,44 @@ export default function ReleaseDetailPage() {
 const [primaryArtistId, setPrimaryArtistId] = useState("");
 const [featuredArtistIds, setFeaturedArtistIds] = useState<number[]>([]);
   const canManage = user && canManageCatalog(user.role);
+  const canFetch = Boolean(token && params.id);
+  const fetchKey = `${token ?? ""}:${params.id ?? ""}:${String(canManage)}`;
+  const { loading: initialLoading, markComplete } = useFetchLoading(canFetch, fetchKey);
+  const loading = initialLoading || refreshing;
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    if (!canFetch || !token || !params.id) return;
+
+    requestReleaseDetail(token, params.id, Boolean(canManage))
+      .then(({ releaseData, artists }) => {
+        setRelease(releaseData);
+        setReleaseForm(releaseFormFromRelease(releaseData));
+        setArtists(artists);
+      })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Release not found."),
+      )
+      .finally(() => markComplete());
+  }, [canFetch, token, params.id, canManage, markComplete]);
+
+  async function load() {
     if (!token || !params.id) return;
-    setLoading(true);
     setError(null);
     try {
-      const releaseData = await apiFetch<Release>(
-        `/api/catalog/releases/${params.id}/`,
-        {},
+      const { releaseData, artists } = await requestReleaseDetail(
         token,
+        params.id,
+        Boolean(canManage),
       );
       setRelease(releaseData);
-      setReleaseForm({
-        primary_artist: String(releaseData.primary_artist),
-        title: releaseData.title,
-        release_type: releaseData.release_type,
-        upc: releaseData.upc ?? "",
-        release_date: releaseData.release_date ?? "",
-      });
-      if (canManage) {
-        const artistData = await apiFetch<Artist[]>("/api/catalog/artists/", {}, token);
-        setArtists(artistData.filter((artist) => artist.label === releaseData.label));
-      }
+      setReleaseForm(releaseFormFromRelease(releaseData));
+      setArtists(artists);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Release not found.");
     } finally {
-      setLoading(false);
+      markComplete();
     }
-  }, [token, params.id, canManage]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  }
 
   async function handleUpdateRelease(event: React.FormEvent) {
     event.preventDefault();
@@ -285,7 +319,12 @@ setFeaturedArtistIds(
       resetTrackForm();
       setPrimaryArtistId("");
       setFeaturedArtistIds([]);
-      await load();
+      setRefreshing(true);
+      try {
+        await load();
+      } finally {
+        setRefreshing(false);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to save track.",
@@ -327,11 +366,14 @@ async function handleDeleteRelease() {
     if (!window.confirm(`Delete track "${track.title}"?`)) return;
 
     setError(null);
+    setRefreshing(true);
     try {
       await apiFetch(`/api/catalog/tracks/${track.id}/`, { method: "DELETE" }, token);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete track.");
+    } finally {
+      setRefreshing(false);
     }
   }
 

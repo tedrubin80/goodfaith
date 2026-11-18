@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/EmptyState";
@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch, downloadAchExport, downloadPayoutBatchPdf, downloadPayoutPdf } from "@/lib/api";
 import { canAccessPayments, canManagePayments, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate, formatMoney, titleCase } from "@/lib/format";
 import type { Payout, PayoutBatch } from "@/lib/types";
 
@@ -16,7 +17,7 @@ export default function PaymentsPage() {
   const [batches, setBatches] = useState<PayoutBatch[]>([]);
   const [artistPayouts, setArtistPayouts] = useState<Payout[]>([]);
   const [payoutsByBatch, setPayoutsByBatch] = useState<Record<number, Payout[]>>({});
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [markingId, setMarkingId] = useState<number | null>(null);
@@ -28,10 +29,27 @@ export default function PaymentsPage() {
   const hasAccess = user && canAccessPayments(user.role);
   const canManage = user && canManagePayments(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(isArtist)}`;
+  const { loading: initialLoading, markComplete } = useFetchLoading(canFetch, fetchKey);
+  const loading = initialLoading || refreshing;
 
-  const loadBatches = useCallback(async () => {
+  useEffect(() => {
+    if (!canFetch || !token) return;
+
+    const request = isArtist
+      ? apiFetch<Payout[]>("/api/payments/payouts/", {}, token).then(setArtistPayouts)
+      : apiFetch<PayoutBatch[]>("/api/payments/batches/", {}, token).then(setBatches);
+
+    request
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load payouts."),
+      )
+      .finally(() => markComplete());
+  }, [canFetch, token, isArtist, markComplete]);
+
+  async function loadBatches() {
     if (!token || !hasAccess) return;
-    setLoading(true);
     setError(null);
     try {
       if (isArtist) {
@@ -43,14 +61,8 @@ export default function PaymentsPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load payouts.");
-    } finally {
-      setLoading(false);
     }
-  }, [token, hasAccess, isArtist]);
-
-  useEffect(() => {
-    loadBatches();
-  }, [loadBatches]);
+  }
 
   async function loadPayouts(batchId: number) {
     if (!token || payoutsByBatch[batchId]) return;
@@ -135,10 +147,12 @@ export default function PaymentsPage() {
           row.id === updated.id ? updated : row,
         ),
       }));
+      setRefreshing(true);
       await loadBatches();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to mark payout as paid.");
     } finally {
+      setRefreshing(false);
       setMarkingId(null);
     }
   }

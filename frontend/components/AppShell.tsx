@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { apiFetch } from "@/lib/api";
 import {
@@ -77,25 +77,34 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, token, logout } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const refreshUnread = useCallback(async () => {
-    if (!token) return;
-    try {
-      const data = await apiFetch<{ count: number }>(
-        "/api/notifications/unread_count/",
-        {},
-        token,
-      );
-      setUnreadCount(data.count);
-    } catch {
-      // ignore badge fetch errors
-    }
-  }, [token]);
-
   useEffect(() => {
-    refreshUnread();
-    const id = window.setInterval(refreshUnread, 60_000);
-    return () => window.clearInterval(id);
-  }, [refreshUnread, pathname]);
+    if (!token) return;
+
+    let cancelled = false;
+
+    const fetchUnread = async () => {
+      try {
+        const data = await apiFetch<{ count: number }>(
+          "/api/notifications/unread_count/",
+          {},
+          token,
+        );
+        if (!cancelled) setUnreadCount(data.count);
+      } catch {
+        // ignore badge fetch errors
+      }
+    };
+
+    void fetchUnread();
+    const id = window.setInterval(() => {
+      void fetchUnread();
+    }, 60_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [token, pathname]);
 
   const links = NAV.filter((item) => {
     if (!user) return false;

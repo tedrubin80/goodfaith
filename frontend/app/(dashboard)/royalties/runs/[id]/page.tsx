@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch, downloadRoyaltyRunPdf } from "@/lib/api";
 import { canAccessRoyalties, canManagePayments, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatMoney, titleCase } from "@/lib/format";
 import type { PayoutBatch, RoyaltyRun, RoyaltyRunPayout } from "@/lib/types";
 
@@ -15,39 +16,36 @@ export default function RunDetailPage() {
   const { token, user } = useAuth();
   const [run, setRun] = useState<RoyaltyRun | null>(null);
   const [payouts, setPayouts] = useState<RoyaltyRunPayout[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [issuing, setIssuing] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const hasAccess = user && canAccessRoyalties(user.role);
   const canIssue = user && canManagePayments(user.role);
-
-  const load = useCallback(async () => {
-    if (!token || !params.id || !hasAccess) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [runData, payoutData] = await Promise.all([
-        apiFetch<RoyaltyRun>(`/api/royalties/runs/${params.id}/`, {}, token),
-        apiFetch<RoyaltyRunPayout[]>(
-          `/api/royalties/runs/${params.id}/payouts/`,
-          {},
-          token,
-        ),
-      ]);
-      setRun(runData);
-      setPayouts(payoutData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load royalty run.");
-    } finally {
-      setLoading(false);
-    }
-  }, [token, params.id, hasAccess]);
+  const canFetch = Boolean(token && params.id && hasAccess);
+  const fetchKey = `${token ?? ""}:${params.id ?? ""}:${String(hasAccess)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!canFetch || !token || !params.id) return;
+
+    Promise.all([
+      apiFetch<RoyaltyRun>(`/api/royalties/runs/${params.id}/`, {}, token),
+      apiFetch<RoyaltyRunPayout[]>(
+        `/api/royalties/runs/${params.id}/payouts/`,
+        {},
+        token,
+      ),
+    ])
+      .then(([runData, payoutData]) => {
+        setRun(runData);
+        setPayouts(payoutData);
+      })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load royalty run."),
+      )
+      .finally(() => markComplete());
+  }, [canFetch, token, params.id, markComplete]);
 
   async function issuePayouts() {
     if (!token || !run || !canIssue) return;

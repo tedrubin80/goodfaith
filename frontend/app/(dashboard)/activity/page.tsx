@@ -6,30 +6,30 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { canAccessAuditLog, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDateTime } from "@/lib/format";
 import type { AuditEvent } from "@/lib/types";
 
 export default function ActivityPage() {
   const { token, user } = useAuth();
   const [events, setEvents] = useState<AuditEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const hasAccess = user && canAccessAuditLog(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     apiFetch<AuditEvent[]>("/api/audit/events/", {}, token)
       .then(setEvents)
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load activity log."),
       )
-      .finally(() => setLoading(false));
-  }, [token, hasAccess]);
+      .finally(() => markComplete());
+  }, [canFetch, token, markComplete]);
 
   if (!hasAccess) {
     return (

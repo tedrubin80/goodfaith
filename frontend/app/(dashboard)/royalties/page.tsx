@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { canAccessRoyalties, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate, formatMoney } from "@/lib/format";
 import { DISTRIBUTORS, type Label, type RoyaltyRun, type RoyaltyStatement } from "@/lib/types";
 
@@ -16,7 +17,6 @@ export default function RoyaltiesPage() {
   const [statements, setStatements] = useState<RoyaltyStatement[]>([]);
   const [runs, setRuns] = useState<RoyaltyRun[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
-  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [creatingRun, setCreatingRun] = useState(false);
   const [showRunForm, setShowRunForm] = useState(false);
@@ -35,14 +35,14 @@ export default function RoyaltiesPage() {
   });
 
   const hasAccess = user && canAccessRoyalties(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const processedStatements = statements.filter((s) => s.status === "processed");
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     Promise.all([
       apiFetch<RoyaltyStatement[]>("/api/royalties/statements/", {}, token),
@@ -61,8 +61,8 @@ export default function RoyaltiesPage() {
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load royalty data."),
       )
-      .finally(() => setLoading(false));
-  }, [token, hasAccess]);
+      .finally(() => markComplete());
+  }, [canFetch, token, markComplete]);
 
   async function handleUpload(event: React.FormEvent) {
     event.preventDefault();

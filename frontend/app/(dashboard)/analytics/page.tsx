@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useFetchLoading } from "@/lib/use-fetch-loading";
+
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
@@ -269,10 +271,12 @@ function OpsView({ data }: { data: OpsAnalyticsSummary }) {
 export default function AnalyticsPage() {
   const { token, user } = useAuth();
   const [data, setData] = useState<AnalyticsSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const hasAccess = Boolean(user && canAccessAnalytics(user.role));
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const description = useMemo(() => {
     if (!user) return "";
@@ -286,18 +290,15 @@ export default function AnalyticsPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     apiFetch<AnalyticsSummary>("/api/analytics/summary/", {}, token)
       .then(setData)
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load analytics."),
       )
-      .finally(() => setLoading(false));
-  }, [token, hasAccess]);
+      .finally(() => markComplete());
+  }, [canFetch, token, markComplete]);
 
   if (!user || !hasAccess) {
     return (
