@@ -15,8 +15,9 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_USER: gfrm
-          POSTGRES_PASSWORD: gfrm
           POSTGRES_DB: gfrm
+          # Ephemeral CI DB on localhost only — no password in workflow YAML (GitGuardian).
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -54,7 +55,7 @@ jobs:
         env:
           DJANGO_SECRET_KEY: ci-test-secret
           DJANGO_SETTINGS_MODULE: config.settings.dev
-          DATABASE_URL: postgres://gfrm:gfrm@localhost:5432/gfrm
+          DATABASE_URL: postgres://gfrm@localhost:5432/gfrm
           CELERY_BROKER_URL: redis://localhost:6379/0
           CELERY_RESULT_BACKEND: redis://localhost:6379/0
           DJANGO_CACHE_URL: redis://localhost:6379/1
