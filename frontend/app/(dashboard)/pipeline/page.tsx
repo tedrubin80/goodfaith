@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { canAccessARPipeline, canManageARPipeline, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import {
   PIPELINE_STAGES,
   PROSPECT_PRIORITIES,
@@ -43,7 +44,6 @@ export default function PipelinePage() {
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [labels, setLabels] = useState<{ id: number; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -53,6 +53,9 @@ export default function PipelinePage() {
 
   const hasAccess = user && canAccessARPipeline(user.role);
   const canManage = user && canManageARPipeline(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const stageCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -101,19 +104,16 @@ export default function PipelinePage() {
   }
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     async function load() {
       try {
-        const prospectData = await apiFetch<Prospect[]>("/api/ar/prospects/", {}, token!);
+        const prospectData = await apiFetch<Prospect[]>("/api/ar/prospects/", {}, token);
         setProspects(prospectData);
         if (canManage) {
           const [artistData, labelData] = await Promise.all([
-            apiFetch<Artist[]>("/api/catalog/artists/", {}, token!),
-            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token!),
+            apiFetch<Artist[]>("/api/catalog/artists/", {}, token),
+            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token),
           ]);
           setArtists(artistData);
           setLabels(labelData);
@@ -124,12 +124,12 @@ export default function PipelinePage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load pipeline.");
       } finally {
-        setLoading(false);
+        markComplete();
       }
     }
 
     void load();
-  }, [token, hasAccess, canManage]);
+  }, [canFetch, token, canManage, markComplete]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

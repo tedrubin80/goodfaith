@@ -4,29 +4,30 @@ import { useEffect, useMemo, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { ArtistEarning } from "@/lib/types";
 
 export default function EarningsPage() {
   const { token, user } = useAuth();
   const [earnings, setEarnings] = useState<ArtistEarning[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isArtist = Boolean(user && isArtistRole(user.role));
+  const canFetch = Boolean(token && isArtist);
+  const fetchKey = `${token ?? ""}:${user?.id ?? ""}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
+
   useEffect(() => {
-    if (!token || !user || !isArtistRole(user.role)) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     apiFetch<ArtistEarning[]>("/api/royalties/my-earnings/", {}, token)
       .then(setEarnings)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load earnings."))
-      .finally(() => setLoading(false));
-  }, [token, user]);
+      .finally(() => markComplete());
+  }, [canFetch, token, markComplete]);
 
   const total = useMemo(
     () => earnings.reduce((sum, row) => sum + Number(row.amount), 0),

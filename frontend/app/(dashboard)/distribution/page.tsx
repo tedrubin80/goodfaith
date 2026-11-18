@@ -12,6 +12,7 @@ import {
   isArtistRole,
   useAuth,
 } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate } from "@/lib/format";
 import {
   DELIVERY_STATUSES,
@@ -44,7 +45,6 @@ export default function DistributionPage() {
   const [deliveries, setDeliveries] = useState<DspDelivery[]>([]);
   const [releases, setReleases] = useState<Release[]>([]);
   const [labels, setLabels] = useState<{ id: number; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -55,6 +55,9 @@ export default function DistributionPage() {
   const hasAccess = user && canAccessDistribution(user.role);
   const canManage = user && canManageDistribution(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const statusCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -104,23 +107,20 @@ export default function DistributionPage() {
   }
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     async function load() {
       try {
         const deliveryData = await apiFetch<DspDelivery[]>(
           "/api/distribution/deliveries/",
           {},
-          token!,
+          token,
         );
         setDeliveries(deliveryData);
         if (canManage) {
           const [releaseData, labelData] = await Promise.all([
-            apiFetch<Release[]>("/api/catalog/releases/", {}, token!),
-            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token!),
+            apiFetch<Release[]>("/api/catalog/releases/", {}, token),
+            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token),
           ]);
           setReleases(releaseData);
           setLabels(labelData);
@@ -131,12 +131,12 @@ export default function DistributionPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load deliveries.");
       } finally {
-        setLoading(false);
+        markComplete();
       }
     }
 
     void load();
-  }, [token, hasAccess, canManage]);
+  }, [canFetch, token, canManage, markComplete]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

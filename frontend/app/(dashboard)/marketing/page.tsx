@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { canAccessMarketing, canManageMarketing, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate } from "@/lib/format";
 import {
   CAMPAIGN_STATUSES,
@@ -43,7 +44,6 @@ export default function MarketingPage() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [releases, setReleases] = useState<Release[]>([]);
   const [labels, setLabels] = useState<{ id: number; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -54,6 +54,9 @@ export default function MarketingPage() {
   const hasAccess = user && canAccessMarketing(user.role);
   const canManage = user && canManageMarketing(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const statusCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -99,24 +102,21 @@ export default function MarketingPage() {
   }
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     async function load() {
       try {
         const campaignData = await apiFetch<MarketingCampaign[]>(
           "/api/marketing/campaigns/",
           {},
-          token!,
+          token,
         );
         setCampaigns(campaignData);
         if (canManage) {
           const [artistData, releaseData, labelData] = await Promise.all([
-            apiFetch<Artist[]>("/api/catalog/artists/", {}, token!),
-            apiFetch<Release[]>("/api/catalog/releases/", {}, token!),
-            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token!),
+            apiFetch<Artist[]>("/api/catalog/artists/", {}, token),
+            apiFetch<Release[]>("/api/catalog/releases/", {}, token),
+            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token),
           ]);
           setArtists(artistData);
           setReleases(releaseData);
@@ -128,12 +128,12 @@ export default function MarketingPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load campaigns.");
       } finally {
-        setLoading(false);
+        markComplete();
       }
     }
 
     void load();
-  }, [token, hasAccess, canManage]);
+  }, [canFetch, token, canManage, markComplete]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

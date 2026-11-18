@@ -7,6 +7,7 @@ import { ArtistDashboard } from "@/components/ArtistDashboard";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { canAccessRoyalties, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import type { ArtistEarning, Payout, Release, RoyaltyStatement, SplitSheet } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -16,15 +17,18 @@ export default function DashboardPage() {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [sheets, setSheets] = useState<SplitSheet[]>([]);
   const [earnings, setEarnings] = useState<ArtistEarning[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const isArtist = user && isArtistRole(user.role);
+  const isArtist = Boolean(user && isArtistRole(user.role));
+  const canLoad = Boolean(token && user);
+  const artistFetchKey = canLoad ? `${token}:${user!.id}:artist` : "";
+  const { loading: artistLoading, markComplete: markArtistComplete } = useFetchLoading(
+    canLoad && isArtist,
+    artistFetchKey,
+  );
+  const loading = canLoad && isArtist && artistLoading;
 
   useEffect(() => {
-    if (!token || !user) {
-      setLoading(false);
-      return;
-    }
+    if (!token || !user) return;
 
     if (isArtist) {
       Promise.all([
@@ -39,7 +43,7 @@ export default function DashboardPage() {
           setSheets(sheetData);
           setEarnings(earningsData);
         })
-        .finally(() => setLoading(false));
+        .finally(() => markArtistComplete());
       return;
     }
 
@@ -52,14 +56,13 @@ export default function DashboardPage() {
         .then(setStatements)
         .catch(() => setStatements([]));
     }
-    setLoading(false);
-  }, [token, user, isArtist]);
+  }, [token, user, isArtist, markArtistComplete]);
 
   if (loading) {
     return <p className="text-sm text-[var(--color-muted)]">Loading…</p>;
   }
 
-  if (isArtist) {
+  if (isArtist && user) {
     const displayName = user.first_name || user.username;
     return (
       <ArtistDashboard
