@@ -195,6 +195,15 @@ class TrackViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+def _validate_track_artist_assignment(*, user, track, artist) -> None:
+    if track.release.label_id not in _user_label_ids(user):
+        raise serializers.ValidationError({"track": "Track not accessible."})
+    if artist.label_id != track.release.label_id:
+        raise serializers.ValidationError(
+            {"artist": "Artist must belong to the same label as the track."}
+        )
+
+
 class TrackArtistViewSet(viewsets.ModelViewSet):
     serializer_class = TrackArtistSerializer
     permission_classes = [CanManageCatalog]
@@ -207,15 +216,19 @@ class TrackArtistViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        track = serializer.validated_data["track"]
-        artist = serializer.validated_data["artist"]
+        _validate_track_artist_assignment(
+            user=self.request.user,
+            track=serializer.validated_data["track"],
+            artist=serializer.validated_data["artist"],
+        )
+        serializer.save()
 
-        if track.release.label_id not in _user_label_ids(self.request.user):
-            raise serializers.ValidationError({"track": "Track not accessible."})
-
-        if artist.label_id != track.release.label_id:
-            raise serializers.ValidationError(
-                {"artist": "Artist must belong to the same label as the track."}
-            )
-
+    def perform_update(self, serializer):
+        track = serializer.validated_data.get("track", serializer.instance.track)
+        artist = serializer.validated_data.get("artist", serializer.instance.artist)
+        _validate_track_artist_assignment(
+            user=self.request.user,
+            track=track,
+            artist=artist,
+        )
         serializer.save()

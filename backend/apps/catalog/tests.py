@@ -4,7 +4,18 @@ from rest_framework.test import APIClient
 
 from apps.accounts.models import Role
 
-from .models import Artist, AssetKind, Label, LabelMembership, Release, ReleaseType, Track, TrackIdentifier
+from .models import (
+    Artist,
+    AssetKind,
+    Label,
+    LabelMembership,
+    Release,
+    ReleaseType,
+    Track,
+    TrackArtist,
+    TrackArtistRole,
+    TrackIdentifier,
+)
 from django.core.exceptions import ValidationError
 
 User = get_user_model()
@@ -157,6 +168,98 @@ class TrackAssetAPITests(TestCase):
         self.assertEqual(self.client.get(f"/api/catalog/tracks/{track.pk}/assets/").status_code, 404)
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(self.url).status_code, 403)
+
+
+class TrackArtistAPITests(TestCase):
+    def setUp(self):
+        self.label = Label.objects.create(name="Credits", slug="credits")
+        self.other_label = Label.objects.create(name="Other", slug="other-credits")
+        self.manager = User.objects.create_user(username="credit-manager", role=Role.MANAGER)
+        LabelMembership.objects.create(user=self.manager, label=self.label)
+        self.primary = Artist.objects.create(label=self.label, name="Primary", slug="primary")
+        self.featured = Artist.objects.create(label=self.label, name="Featured", slug="featured")
+        self.release = Release.objects.create(label=self.label, primary_artist=self.primary, title="Single")
+        self.track = Track.objects.create(release=self.release, title="Song", isrc="USCGH2458227")
+        other_primary = Artist.objects.create(label=self.other_label, name="Away", slug="away")
+        other_release = Release.objects.create(
+            label=self.other_label, primary_artist=other_primary, title="Away",
+        )
+        self.other_track = Track.objects.create(release=other_release, title="Away")
+        self.other_artist = Artist.objects.create(label=self.other_label, name="Guest", slug="guest")
+        self.url = "/api/catalog/track-artists/"
+        self.client = APIClient()
+        self.client.force_authenticate(self.manager)
+
+    def test_create_featured_artist_on_track(self):
+        response = self.client.post(
+            self.url,
+            {
+                "track": self.track.pk,
+                "artist": self.featured.pk,
+                "role": TrackArtistRole.FEATURED,
+                "billing_order": 2,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        link = TrackArtist.objects.get()
+        self.assertEqual((link.track_id, link.artist_id, link.role), (
+            self.track.pk, self.featured.pk, TrackArtistRole.FEATURED,
+        ))
+
+    def test_update_role_keeps_same_label(self):
+        link = TrackArtist.objects.create(
+            track=self.track, artist=self.featured, role=TrackArtistRole.FEATURED,
+        )
+        response = self.client.patch(
+            f"{self.url}{link.pk}/",
+            {"role": TrackArtistRole.PRIMARY, "billing_order": 1},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        link.refresh_from_db()
+        self.assertEqual(link.role, TrackArtistRole.PRIMARY)
+
+    def test_create_rejects_cross_label_artist(self):
+        response = self.client.post(
+            self.url,
+            {
+                "track": self.track.pk,
+                "artist": self.other_artist.pk,
+                "role": TrackArtistRole.FEATURED,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("artist", response.data)
+        self.assertFalse(TrackArtist.objects.exists())
+
+    def test_create_rejects_inaccessible_track(self):
+        response = self.client.post(
+            self.url,
+            {
+                "track": self.other_track.pk,
+                "artist": self.featured.pk,
+                "role": TrackArtistRole.FEATURED,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("track", response.data)
+
+    def test_update_rejects_cross_label_artist(self):
+        link = TrackArtist.objects.create(
+            track=self.track, artist=self.featured, role=TrackArtistRole.FEATURED,
+        )
+        response = self.client.patch(
+            f"{self.url}{link.pk}/",
+            {"artist": self.other_artist.pk},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("artist", response.data)
+        link.refresh_from_db()
+        self.assertEqual(link.artist_id, self.featured.pk)
 
 
 class CatalogModelTests(TestCase):

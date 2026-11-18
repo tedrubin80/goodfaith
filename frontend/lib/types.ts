@@ -425,7 +425,6 @@ export const DISTRIBUTORS = [
   { value: "vydia", label: "Vydia" },
   { value: "the_orchard", label: "The Orchard" },
   { value: "colonize", label: "Colonize Media" },
-  { value: "lujo", label: "Lujo Network" },
   { value: "other", label: "Other" },
 ] as const;
 

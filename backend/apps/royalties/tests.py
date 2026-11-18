@@ -327,6 +327,51 @@ class RoyaltyAPITests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertFalse(RoyaltyStatement.objects.exists())
 
+    def test_statement_line_items_pagination(self):
+        self.client.force_authenticate(user=self.finance)
+        statement = RoyaltyStatement.objects.create(
+            label=self.label,
+            distributor=Distributor.DISTROKID,
+            filename="pages.csv",
+            file=SimpleUploadedFile("pages.csv", b"header\n"),
+            status=StatementStatus.PROCESSED,
+            currency="USD",
+            uploaded_by=self.finance,
+        )
+        for index in range(51):
+            RoyaltyLineItem.objects.create(
+                statement=statement,
+                isrc=f"USRC1760783{index % 10}",
+                track_title=f"Track {index}",
+                amount=Decimal("1.0000"),
+            )
+
+        response = self.client.get(
+            f"/api/royalties/statements/{statement.pk}/line_items/?page=1&page_size=50",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 51)
+        self.assertEqual(response.data["page"], 1)
+        self.assertEqual(response.data["page_size"], 50)
+        self.assertEqual(response.data["total_pages"], 2)
+        self.assertEqual(len(response.data["results"]), 50)
+
+        page_two = self.client.get(
+            f"/api/royalties/statements/{statement.pk}/line_items/?page=2&page_size=50",
+        )
+        self.assertEqual(page_two.status_code, 200)
+        self.assertEqual(len(page_two.data["results"]), 1)
+
+        invalid_size = self.client.get(
+            f"/api/royalties/statements/{statement.pk}/line_items/?page_size=2",
+        )
+        self.assertEqual(invalid_size.status_code, 200)
+        self.assertEqual(invalid_size.data["page_size"], 50)
+        self.assertNotEqual(
+            {item["id"] for item in response.data["results"]},
+            {item["id"] for item in page_two.data["results"]},
+        )
+
 
 class RoyaltyRunConsolidationTests(TestCase):
     def setUp(self):
