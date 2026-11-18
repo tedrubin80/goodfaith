@@ -1,39 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDateTime } from "@/lib/format";
 import type { PortalNotification } from "@/lib/types";
 
 export default function NotificationsPage() {
   const { token } = useAuth();
   const [items, setItems] = useState<PortalNotification[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
 
-  const load = useCallback(async () => {
+  const canFetch = Boolean(token);
+  const fetchKey = token ?? "";
+  const { loading: initialLoading, markComplete } = useFetchLoading(canFetch, fetchKey);
+  const loading = initialLoading || refreshing;
+
+  useEffect(() => {
+    if (!canFetch || !token) return;
+
+    apiFetch<PortalNotification[]>("/api/notifications/", {}, token)
+      .then(setItems)
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load notifications."),
+      )
+      .finally(() => markComplete());
+  }, [canFetch, token, markComplete]);
+
+  async function reloadNotifications() {
     if (!token) return;
-    setLoading(true);
     setError(null);
     try {
       const data = await apiFetch<PortalNotification[]>("/api/notifications/", {}, token);
       setItems(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notifications.");
-    } finally {
-      setLoading(false);
     }
-  }, [token]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  }
 
   async function markRead(notification: PortalNotification) {
     if (!token || notification.is_read) return;
@@ -61,10 +71,12 @@ export default function NotificationsPage() {
         { method: "POST" },
         token,
       );
-      await load();
+      setRefreshing(true);
+      await reloadNotifications();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to mark all as read.");
     } finally {
+      setRefreshing(false);
       setMarkingAll(false);
     }
   }

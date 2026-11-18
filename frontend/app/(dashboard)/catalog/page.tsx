@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { canManageCatalog, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import {
   buttonPrimaryClassName,
   buttonSecondaryClassName,
@@ -23,7 +24,6 @@ export default function CatalogPage() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,10 +38,13 @@ export default function CatalogPage() {
 
   const canManage = user && canManageCatalog(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token);
+  const fetchKey = `${token ?? ""}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   useEffect(() => {
-    if (!token) return;
-    setLoading(true);
+    if (!canFetch || !token) return;
+
     Promise.all([
       apiFetch<Release[]>("/api/catalog/releases/", {}, token),
       canManage ? apiFetch<Artist[]>("/api/catalog/artists/", {}, token) : Promise.resolve([]),
@@ -56,8 +59,8 @@ export default function CatalogPage() {
         }
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load catalog."))
-      .finally(() => setLoading(false));
-  }, [token, canManage]);
+      .finally(() => markComplete());
+  }, [canFetch, token, canManage, markComplete]);
 
   const rosterArtists = form.label
     ? artists.filter((artist) => artist.label === Number(form.label))

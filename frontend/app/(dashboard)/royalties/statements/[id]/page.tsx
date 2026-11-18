@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { canAccessRoyalties, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate, formatMoney } from "@/lib/format";
 import type { RoyaltyLineItem, RoyaltyStatement } from "@/lib/types";
 
@@ -25,8 +26,6 @@ export default function StatementDetailPage() {
 
   const [statement, setStatement] = useState<RoyaltyStatement | null>(null);
   const [lineItems, setLineItems] = useState<RoyaltyLineItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [itemsLoading, setItemsLoading] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,57 +35,52 @@ export default function StatementDetailPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   const hasAccess = user && canAccessRoyalties(user.role);
-
-  const load = useCallback(async () => {
-    if (!token || !params.id || !hasAccess) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const statementData = await apiFetch<RoyaltyStatement>(
-        `/api/royalties/statements/${params.id}/`,
-        {},
-        token,
-      );
-
-      setStatement(statementData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load statement.");
-    } finally {
-      setLoading(false);
-    }
-  }, [token, params.id, hasAccess]);
-
-  const loadLineItems = useCallback(async () => {
-    if (!token || !params.id || !hasAccess) return;
-
-    setItemsLoading(true);
-
-    try {
-      const data = await apiFetch<PaginatedLineItems>(
-        `/api/royalties/statements/${params.id}/line_items/?page=${page}&page_size=${pageSize}`,
-        {},
-        token,
-      );
-
-      setLineItems(data.results);
-      setTotalItems(data.count);
-      setTotalPages(data.total_pages);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load line items.");
-    } finally {
-      setItemsLoading(false);
-    }
-  }, [token, params.id, hasAccess, page, pageSize]);
+  const canFetchStatement = Boolean(token && params.id && hasAccess);
+  const statementFetchKey = `${token ?? ""}:${params.id ?? ""}:${String(hasAccess)}`;
+  const { loading, markComplete: markStatementComplete } = useFetchLoading(
+    canFetchStatement,
+    statementFetchKey,
+  );
+  const canFetchItems = Boolean(token && params.id && hasAccess);
+  const itemsFetchKey = `${token ?? ""}:${params.id ?? ""}:${page}:${pageSize}`;
+  const { loading: itemsLoading, markComplete: markItemsComplete } = useFetchLoading(
+    canFetchItems,
+    itemsFetchKey,
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!canFetchStatement || !token || !params.id) return;
+
+    apiFetch<RoyaltyStatement>(
+      `/api/royalties/statements/${params.id}/`,
+      {},
+      token,
+    )
+      .then(setStatement)
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load statement."),
+      )
+      .finally(() => markStatementComplete());
+  }, [canFetchStatement, token, params.id, markStatementComplete]);
 
   useEffect(() => {
-    loadLineItems();
-  }, [loadLineItems]);
+    if (!canFetchItems || !token || !params.id) return;
+
+    apiFetch<PaginatedLineItems>(
+      `/api/royalties/statements/${params.id}/line_items/?page=${page}&page_size=${pageSize}`,
+      {},
+      token,
+    )
+      .then((data) => {
+        setLineItems(data.results);
+        setTotalItems(data.count);
+        setTotalPages(data.total_pages);
+      })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load line items."),
+      )
+      .finally(() => markItemsComplete());
+  }, [canFetchItems, token, params.id, page, pageSize, markItemsComplete]);
 
   async function handleReprocess() {
     if (!token || !params.id) return;

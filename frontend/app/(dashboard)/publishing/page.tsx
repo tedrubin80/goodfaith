@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { canAccessPublishing, canManagePublishing, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import {
   CONTRIBUTOR_ROLES,
   PRO_SOCIETIES,
@@ -40,7 +41,6 @@ export default function PublishingPage() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -59,6 +59,9 @@ export default function PublishingPage() {
   const hasAccess = user && canAccessPublishing(user.role);
   const canManage = user && canManagePublishing(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const shareTotal = useMemo(
     () => form.shares.reduce((sum, s) => sum + (Number(s.percentage) || 0), 0),
@@ -66,20 +69,17 @@ export default function PublishingPage() {
   );
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     async function load() {
       try {
-        const workData = await apiFetch<MusicalWork[]>("/api/publishing/works/", {}, token!);
+        const workData = await apiFetch<MusicalWork[]>("/api/publishing/works/", {}, token);
         setWorks(workData);
         if (canManage) {
           const [artistData, trackData, labelData] = await Promise.all([
-            apiFetch<Artist[]>("/api/catalog/artists/", {}, token!),
-            apiFetch<Track[]>("/api/catalog/tracks/", {}, token!),
-            apiFetch<Label[]>("/api/catalog/labels/", {}, token!),
+            apiFetch<Artist[]>("/api/catalog/artists/", {}, token),
+            apiFetch<Track[]>("/api/catalog/tracks/", {}, token),
+            apiFetch<Label[]>("/api/catalog/labels/", {}, token),
           ]);
           setArtists(artistData);
           setTracks(trackData);
@@ -91,12 +91,12 @@ export default function PublishingPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load works.");
       } finally {
-        setLoading(false);
+        markComplete();
       }
     }
 
     void load();
-  }, [token, hasAccess, canManage]);
+  }, [canFetch, token, canManage, markComplete]);
 
   function resetForm() {
     setForm({

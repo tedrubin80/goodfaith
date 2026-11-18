@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { canAccessSplits, canManageSplits, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import type { SplitEntry, SplitSheet, Track } from "@/lib/types";
 import { SPLIT_ROLES } from "@/lib/types";
 
@@ -20,7 +21,6 @@ export default function SplitsPage() {
   const { token, user } = useAuth();
   const [sheets, setSheets] = useState<SplitSheet[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -35,6 +35,9 @@ export default function SplitsPage() {
   const hasAccess = user && canAccessSplits(user.role);
   const canManage = user && canManageSplits(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   const sheetTrackIds = useMemo(
     () => new Set(sheets.map((sheet) => sheet.track)),
@@ -47,10 +50,7 @@ export default function SplitsPage() {
   );
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     Promise.all([
       apiFetch<SplitSheet[]>("/api/splits/sheets/", {}, token),
@@ -65,8 +65,8 @@ export default function SplitsPage() {
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load split sheets."),
       )
-      .finally(() => setLoading(false));
-  }, [token, hasAccess, canManage]);
+      .finally(() => markComplete());
+  }, [canFetch, token, canManage, markComplete]);
 
   function updateEntry(index: number, patch: Partial<SplitEntry>) {
     setForm((current) => ({

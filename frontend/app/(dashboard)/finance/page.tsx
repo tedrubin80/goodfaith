@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { apiFetch } from "@/lib/api";
 import { canAccessERP, canManageERP, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate, formatMoney } from "@/lib/format";
 import {
   EXPENSE_CATEGORIES,
@@ -74,7 +75,6 @@ export default function FinancePage() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [releases, setReleases] = useState<Release[]>([]);
   const [labels, setLabels] = useState<{ id: number; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -85,20 +85,20 @@ export default function FinancePage() {
   const hasAccess = user && canAccessERP(user.role);
   const canManage = user && canManageERP(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     async function load() {
       try {
         const [expenseData, budgetData, entryData, balanceData] = await Promise.all([
-          apiFetch<LabelExpense[]>("/api/erp/expenses/", {}, token!),
-          apiFetch<Budget[]>("/api/erp/budgets/", {}, token!),
-          apiFetch<RecoupmentEntry[]>("/api/erp/recoupment/", {}, token!),
-          apiFetch<RecoupmentBalance[]>("/api/erp/recoupment/balances/", {}, token!),
+          apiFetch<LabelExpense[]>("/api/erp/expenses/", {}, token),
+          apiFetch<Budget[]>("/api/erp/budgets/", {}, token),
+          apiFetch<RecoupmentEntry[]>("/api/erp/recoupment/", {}, token),
+          apiFetch<RecoupmentBalance[]>("/api/erp/recoupment/balances/", {}, token),
         ]);
         setExpenses(expenseData);
         setBudgets(budgetData);
@@ -106,9 +106,9 @@ export default function FinancePage() {
         setBalances(balanceData);
         if (canManage) {
           const [artistData, releaseData, labelData] = await Promise.all([
-            apiFetch<Artist[]>("/api/catalog/artists/", {}, token!),
-            apiFetch<Release[]>("/api/catalog/releases/", {}, token!),
-            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token!),
+            apiFetch<Artist[]>("/api/catalog/artists/", {}, token),
+            apiFetch<Release[]>("/api/catalog/releases/", {}, token),
+            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token),
           ]);
           setArtists(artistData);
           setReleases(releaseData);
@@ -123,12 +123,12 @@ export default function FinancePage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load finance data.");
       } finally {
-        setLoading(false);
+        markComplete();
       }
     }
 
     void load();
-  }, [token, hasAccess, canManage]);
+  }, [canFetch, token, canManage, markComplete]);
 
   function resetForms(labelId?: string) {
     const label = labelId ?? (labels.length === 1 ? String(labels[0].id) : "");

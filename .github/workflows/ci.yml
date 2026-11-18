@@ -7,19 +7,87 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  backend:
+    name: Backend tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: gfrm
+          POSTGRES_PASSWORD: gfrm
+          POSTGRES_DB: gfrm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gfrm"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure environment
-        run: cp backend/.env.example backend/.env
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
 
-      - name: Start dependencies
-        run: docker compose up -d db redis
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: Backend tests
-        run: docker compose run --rm --no-deps backend python manage.py test --verbosity=1
+      - name: Run Django tests
+        env:
+          DJANGO_SECRET_KEY: ci-test-secret
+          DJANGO_SETTINGS_MODULE: config.settings.dev
+          DATABASE_URL: postgres://gfrm:gfrm@localhost:5432/gfrm
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
+          DJANGO_CACHE_URL: redis://localhost:6379/1
+          DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+          CORS_ALLOWED_ORIGINS: http://localhost:3000
+        run: python manage.py test --verbosity=1
 
-      - name: Frontend build
-        run: docker compose run --rm --no-deps frontend npm run build
+  frontend:
+    name: Frontend checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Production build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8020
+        run: npm run build

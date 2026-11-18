@@ -5,21 +5,22 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError, apiFetch, downloadExport } from "@/lib/api";
 import { canAccessRoyalties, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import type { Label } from "@/lib/types";
 
 export default function ExportPage() {
   const { token, user } = useAuth();
   const [labels, setLabels] = useState<Label[]>([]);
   const [labelId, setLabelId] = useState("");
-  const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState<"json" | "csv" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const canFetch = Boolean(token);
+  const fetchKey = token ?? "";
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
+
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     apiFetch<Label[]>("/api/catalog/labels/", {}, token)
       .then((data) => {
@@ -29,8 +30,8 @@ export default function ExportPage() {
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load labels."),
       )
-      .finally(() => setLoading(false));
-  }, [token]);
+      .finally(() => markComplete());
+  }, [canFetch, token, markComplete]);
 
   async function handleDownload(format: "json" | "csv") {
     if (!token) return;

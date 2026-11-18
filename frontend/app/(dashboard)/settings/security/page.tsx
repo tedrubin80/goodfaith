@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { ApiError, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import type { User } from "@/lib/types";
 
 type SetupResponse = {
   secret: string;
@@ -22,6 +23,53 @@ type ConfirmResponse = {
 
 export default function SecuritySettingsPage() {
   const { user, token, refreshUser } = useAuth();
+
+  if (!user || !token) return null;
+
+  return (
+    <>
+      <PageHeader
+        title="Security"
+        description="Protect your account with two-factor authentication."
+      />
+
+      {user.must_enable_2fa ? (
+        <div
+          className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm"
+          role="status"
+        >
+          Your role requires two-factor authentication before you can access royalties,
+          splits, activity, or export.
+        </div>
+      ) : null}
+
+      <TwoFactorAuthenticationPanel
+        key={String(user.is_2fa_enabled)}
+        user={user}
+        token={token}
+        refreshUser={refreshUser}
+      />
+
+      <section className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 max-w-xl">
+        <h2 className="text-lg font-semibold">Password</h2>
+        <p className="mt-2 text-sm text-[var(--color-muted)]">
+          Changing your password signs you out everywhere — you will need to sign in again.
+        </p>
+        <PasswordForm />
+      </section>
+    </>
+  );
+}
+
+function TwoFactorAuthenticationPanel({
+  user,
+  token,
+  refreshUser,
+}: {
+  user: User;
+  token: string;
+  refreshUser: () => Promise<void>;
+}) {
   const [setup, setSetup] = useState<SetupResponse | null>(null);
   const [confirmCode, setConfirmCode] = useState("");
   const [disablePassword, setDisablePassword] = useState("");
@@ -30,14 +78,6 @@ export default function SecuritySettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    setSetup(null);
-    setBackupCodes(null);
-    setConfirmCode("");
-  }, [user?.is_2fa_enabled]);
-
-  if (!user || !token) return null;
 
   async function startSetup() {
     setError(null);
@@ -111,21 +151,6 @@ export default function SecuritySettingsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Security"
-        description="Protect your account with two-factor authentication."
-      />
-
-      {user.must_enable_2fa ? (
-        <div
-          className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm"
-          role="status"
-        >
-          Your role requires two-factor authentication before you can access royalties,
-          splits, activity, or export.
-        </div>
-      ) : null}
-
       {message ? (
         <p className="mb-4 text-sm text-green-700 dark:text-green-400" role="status">
           {message}
@@ -247,14 +272,6 @@ export default function SecuritySettingsPage() {
           </ul>
         </section>
       ) : null}
-
-      <section className="mt-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 max-w-xl">
-        <h2 className="text-lg font-semibold">Password</h2>
-        <p className="mt-2 text-sm text-[var(--color-muted)]">
-          Changing your password signs you out everywhere — you will need to sign in again.
-        </p>
-        <PasswordForm />
-      </section>
     </>
   );
 }

@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ApiError, API_URL, apiFetch } from "@/lib/api";
 import { canAccessContracts, canManageContracts, isArtistRole, useAuth } from "@/lib/auth";
+import { useFetchLoading } from "@/lib/use-fetch-loading";
 import { formatDate } from "@/lib/format";
 import {
   CONTRACT_STATUSES,
@@ -29,7 +30,6 @@ export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [labels, setLabels] = useState<{ id: number; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +57,9 @@ export default function ContractsPage() {
   const hasAccess = user && canAccessContracts(user.role);
   const canManage = user && canManageContracts(user.role);
   const isArtist = user && isArtistRole(user.role);
+  const canFetch = Boolean(token && hasAccess);
+  const fetchKey = `${token ?? ""}:${String(hasAccess)}:${String(canManage)}`;
+  const { loading, markComplete } = useFetchLoading(canFetch, fetchKey);
 
   function resetForm(labelId?: string) {
     setForm({
@@ -92,19 +95,16 @@ export default function ContractsPage() {
   }
 
   useEffect(() => {
-    if (!token || !hasAccess) {
-      setLoading(false);
-      return;
-    }
+    if (!canFetch || !token) return;
 
     async function load() {
       try {
-        const contractData = await apiFetch<Contract[]>("/api/contracts/", {}, token!);
+        const contractData = await apiFetch<Contract[]>("/api/contracts/", {}, token);
         setContracts(contractData);
         if (canManage) {
           const [artistData, labelData] = await Promise.all([
-            apiFetch<Artist[]>("/api/catalog/artists/", {}, token!),
-            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token!),
+            apiFetch<Artist[]>("/api/catalog/artists/", {}, token),
+            apiFetch<{ id: number; name: string }[]>("/api/catalog/labels/", {}, token),
           ]);
           setArtists(artistData);
           setLabels(labelData);
@@ -115,12 +115,12 @@ export default function ContractsPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load contracts.");
       } finally {
-        setLoading(false);
+        markComplete();
       }
     }
 
     void load();
-  }, [token, hasAccess, canManage]);
+  }, [canFetch, token, canManage, markComplete]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

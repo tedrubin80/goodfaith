@@ -34,25 +34,34 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadSession = useCallback(async (storedToken: string) => {
-    const profile = await apiFetch<User>("/api/auth/me/", {}, storedToken);
-    setToken(storedToken);
-    setUser(profile);
-  }, []);
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return Boolean(localStorage.getItem(TOKEN_KEY));
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem(TOKEN_KEY);
     if (!stored) {
-      setLoading(false);
       return;
     }
 
-    loadSession(stored)
+    let cancelled = false;
+
+    apiFetch<User>("/api/auth/me/", {}, stored)
+      .then((profile) => {
+        if (cancelled) return;
+        setToken(stored);
+        setUser(profile);
+      })
       .catch(() => localStorage.removeItem(TOKEN_KEY))
-      .finally(() => setLoading(false));
-  }, [loadSession]);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<LoginResult> => {
     const payload = await apiFetch<{

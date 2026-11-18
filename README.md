@@ -126,14 +126,16 @@ Deep context: [`docs/FEATURE_BACKLOG.md`](./docs/FEATURE_BACKLOG.md) · Research
 
 ## Contributing
 
-Issues and PRs welcome. Keep changes focused; match existing Django/Next patterns and RBAC rules (role-scoped, label-scoped data).
+Issues and PRs welcome — especially from labels running their own forks who want changes upstream.
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for Docker setup, running tests, branch/PR expectations, and migration guidance. Security issues: [docs/SECURITY.md](docs/SECURITY.md).
 
 ```bash
-# Backend tests
-cd backend && python manage.py test
+# Backend (with db + redis from docker compose)
+docker compose run --rm --no-deps backend python manage.py test
 
-# Frontend (TypeScript + production build)
-cd frontend && npx tsc --noEmit && npm run build
+# Frontend
+cd frontend && npm run typecheck && npm run lint && npm run build
 ```
 
 **Acknowledgments:** Catalog and royalty improvements including track assets, Colonize support, featured artists, statement pagination, and the track royalty detail view were contributed via the [2RMusic/goodfaith](https://github.com/2RMusic/goodfaith) fork and integrated into upstream.
